@@ -36,17 +36,16 @@ export default function LoginView({ onLogin, setCurrentView }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Guardar token en localStorage
-        localStorage.setItem("token", data.access_token);
-        
-        // Decodificar el token para obtener info del usuario (básico)
+        // Decodificar el token para obtener info del usuario
         const tokenPayload = JSON.parse(atob(data.access_token.split('.')[1]));
         
         const userData = {
+          name: tokenPayload.username,
           username: tokenPayload.username,
           email: tokenPayload.email,
-          type: tokenPayload.role === "profesor" ? "teacher" : "user",
-          rating: 1200 // Default, se puede obtener del perfil después
+          type: tokenPayload.role, // Mantener el rol original del backend
+          rating: tokenPayload.elo || 1200, // Usar el elo del token si está disponible
+          token: data.access_token
         };
 
         onLogin(userData);

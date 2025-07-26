@@ -16,33 +16,26 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState("home");
 
-  // Funciones de login/logout
-  function login(userType) {
-    const name = prompt("Ingresa tu nombre de usuario:");
-    if (name) {
-      setUser({
-        name,
-        type: userType,
-        rating: Math.floor(Math.random() * 1000) + 1000,
-      });
-      setCurrentView("home");
-    }
+  // Función de login actualizada para recibir datos del backend
+  function login(userData) {
+    setUser(userData);
+    setCurrentView("home");
   }
-
-
 
   function logout() {
     setUser(null);
     setCurrentView("home");
+    // Limpiar token si existe
+    localStorage.removeItem("token");
   }
 
   // Renderiza la vista actual
   const renderCurrentView = () => {
     switch (currentView) {
       case "login":
-        return <LoginView onLogin={login} onBack={() => setCurrentView("home")} />;
+        return <LoginView onLogin={login} setCurrentView={setCurrentView} />;
       case "register":
-        return <RegisterView onRegister={login} onBack={() => setCurrentView("home")} />;
+        return <RegisterView onRegister={login} setCurrentView={setCurrentView} />;
       case "puzzles":
         return <PuzzlesView user={user} onBack={() => setCurrentView("home")} />;
       case "learn":
