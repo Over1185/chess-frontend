@@ -4,7 +4,7 @@ export default function Header({ user, onLogout, setCurrentView }) {
   // Colores según tipo de usuario
   const getUserColor = () => {
     if (!user) return "bg-purple-700";
-    return user.type === "teacher" ? "bg-emerald-700" : "bg-blue-700";
+    return user.type === "profesor" ? "bg-emerald-700" : "bg-blue-700";
   };
 
   return (
@@ -47,7 +47,7 @@ export default function Header({ user, onLogout, setCurrentView }) {
               <div>
                 <span className="font-semibold">{user.name}</span>
                 <div className="text-xs opacity-75">
-                  {user.type === "teacher" ? "Profesor" : "Estudiante"} • Rating: {user.rating}
+                  {user.type === "teacher" ? "profesor" : "user"} • Rating: {user.rating}
                 </div>
               </div>
             </div>

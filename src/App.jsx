@@ -29,6 +29,8 @@ export default function App() {
     }
   }
 
+
+
   function logout() {
     setUser(null);
     setCurrentView("home");

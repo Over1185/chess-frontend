@@ -176,14 +176,14 @@ export default function ChessBoardPractice() {
     if (isSelected) {
       return 'bg-yellow-400 shadow-lg ring-4 ring-yellow-300 ring-opacity-50';
     } else if (isLight) {
-      return 'bg-amber-50';
+      return 'bg-purple-200';
     } else {
-      return 'bg-amber-700';
+      return 'bg-purple-600';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-purple-200 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           
@@ -211,25 +211,27 @@ export default function ChessBoardPractice() {
                 </div>
 
                 {/* Tablero */}
-                <div className="border-8 border-amber-900 rounded-lg overflow-hidden shadow-2xl">
+                <div className="border-8 border-purple-800 rounded-lg overflow-hidden shadow-2xl bg-purple-800">
                   {board.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex">
                       {row.map((piece, colIndex) => (
                         <div
                           key={`${rowIndex}-${colIndex}`}
-                          className={`w-20 h-20 flex items-center justify-center cursor-pointer hover:brightness-110 transition-all duration-200 ${getSquareColor(rowIndex, colIndex)}`}
+                          className={`w-20 h-20 flex items-center justify-center cursor-pointer hover:brightness-110 transition-all duration-200 relative ${getSquareColor(rowIndex, colIndex)}`}
                           onClick={() => handleSquareClick(rowIndex, colIndex)}
                         >
                           {piece && (
-                            <img
-                              src={pieceImages[piece]}
-                              alt={`${isWhitePiece(piece) ? 'White' : 'Black'} ${piece.toLowerCase()}`}
-                              className="w-16 h-16 object-contain select-none transition-transform duration-200 hover:scale-110 drop-shadow-lg"
-                              style={{
-                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
-                              }}
-                              draggable={false}
-                            />
+                            <div className="w-full h-full flex items-center justify-center">
+                              <img
+                                src={pieceImages[piece]}
+                                alt={`${isWhitePiece(piece) ? 'White' : 'Black'} ${piece.toLowerCase()}`}
+                                className="w-14 h-14 object-contain select-none transition-transform duration-200 hover:scale-110"
+                                style={{
+                                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
+                                }}
+                                draggable={false}
+                              />
+                            </div>
                           )}
                         </div>
                       ))}
@@ -352,18 +354,7 @@ export default function ChessBoardPractice() {
               </div>
 
               {/* Instrucciones */}
-              <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-                <h3 className="text-xl font-bold mb-4 text-slate-800">
-                  Instrucciones
-                </h3>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <p>• Haz clic en una pieza para seleccionarla</p>
-                  <p>• Haz clic en una casilla válida para mover</p>
-                  <p>• Solo puedes mover piezas de tu color</p>
-                  <p>• La casilla amarilla indica selección</p>
-                  <p>• Las piezas capturadas se muestran arriba</p>
-                </div>
-              </div>
+              
             </div>
           </div>
         </div>
