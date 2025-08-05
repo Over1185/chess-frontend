@@ -1,31 +1,45 @@
-import { FaBook, FaCheckCircle, FaLock } from "react-icons/fa";
+import { useState } from "react";
+import { FaBook, FaCheckCircle, FaLock, FaArrowLeft, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 export default function LearnView({ user, onBack }) {
-  // Lecciones disponibles - en una app real vendrían de la API
+  // Estado para la paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const lessonsPerPage = 6;
+
+  // Lecciones disponibles - 3 lecciones por defecto (paginación activada cuando hay más de 6)
   const allLessons = [
-    { id: 1, title: "Reglas Básicas", description: "Aprende cómo se mueven las piezas", level: "Principiante", order: 1 },
-    { id: 2, title: "Valor de las Piezas", description: "Comprende el valor relativo de cada pieza", level: "Principiante", order: 2 },
-    { id: 3, title: "Jaque y Jaque Mate", description: "Aprende a dar jaque y mate", level: "Principiante", order: 3 },
-    { id: 4, title: "Aperturas Básicas", description: "Primeros movimientos estratégicos", level: "Intermedio", order: 4 },
-    { id: 5, title: "Tácticas Básicas", description: "Clavada, horquilla y descubierta", level: "Intermedio", order: 5 },
-    { id: 6, title: "Finales de Peones", description: "Técnicas básicas de finales", level: "Intermedio", order: 6 },
-    { id: 7, title: "Finales de Torres", description: "Técnicas avanzadas de finales", level: "Avanzado", order: 7 },
-    { id: 8, title: "Estrategia Posicional", description: "Conceptos estratégicos avanzados", level: "Avanzado", order: 8 },
-    { id: 9, title: "Tácticas Avanzadas", description: "Combinaciones complejas", level: "Avanzado", order: 9 }
+    {
+      id: 1,
+      title: "Introducción al Ajedrez",
+      description: "Aprende las reglas básicas y cómo se mueven las piezas",
+      order: 1
+    },
+    {
+      id: 2,
+      title: "Tácticas Fundamentales",
+      description: "Descubre las tácticas básicas: clavada, horquilla y pincho",
+      order: 2
+    },
+    {
+      id: 3,
+      title: "Finales Básicos",
+      description: "Aprende técnicas esenciales para ganar en el final",
+      order: 3
+    }
   ];
 
-  // Lecciones vistas por el usuario
+  // Lecciones completadas por el usuario
   const userCompletedLessons = user?.lecciones_vistas || [];
-  
+
   // Función para determinar si una lección está disponible
   const isLessonAvailable = (lesson) => {
     if (lesson.order === 1) return true; // Primera lección siempre disponible
-    
+
     // Verificar si la lección anterior está completada
     const previousLessonCompleted = userCompletedLessons.some(
       completedId => completedId === lesson.id - 1
     );
-    
+
     return previousLessonCompleted;
   };
 
@@ -39,12 +53,39 @@ export default function LearnView({ user, onBack }) {
   const completedCount = userCompletedLessons.length;
   const progressPercentage = Math.round((completedCount / totalLessons) * 100);
 
+  // Lógica de paginación
+  const totalPages = Math.ceil(totalLessons / lessonsPerPage);
+  const startIndex = (currentPage - 1) * lessonsPerPage;
+  const endIndex = startIndex + lessonsPerPage;
+  const currentLessons = allLessons.slice(startIndex, endIndex);
+
+  // Funciones de navegación de página
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToPage = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-4xl font-bold text-gray-800">Aprende Ajedrez</h1>
-        <button onClick={onBack} className="btn btn-outline">
-          Volver al Home
+        <button
+          onClick={onBack}
+          className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <FaArrowLeft />
+          <span>Volver</span>
         </button>
       </div>
 
@@ -57,19 +98,19 @@ export default function LearnView({ user, onBack }) {
               {completedCount}/{totalLessons} lecciones
             </span>
           </div>
-          
+
           <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-            <div 
+            <div
               className="bg-blue-600 h-4 rounded-full transition-all duration-300"
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>
-          
+
           <div className="flex justify-between text-sm text-gray-600">
             <span>Progreso: {progressPercentage}%</span>
             <span>
-              {completedCount === totalLessons 
-                ? "¡Felicidades! Has completado todas las lecciones" 
+              {completedCount === totalLessons
+                ? "¡Felicidades! Has completado todas las lecciones"
                 : `${totalLessons - completedCount} lecciones restantes`
               }
             </span>
@@ -77,88 +118,133 @@ export default function LearnView({ user, onBack }) {
         </div>
       )}
 
-      {/* Lecciones por nivel */}
-      {["Principiante", "Intermedio", "Avanzado"].map(level => {
-        const levelLessons = allLessons.filter(lesson => lesson.level === level);
-        const levelCompleted = levelLessons.filter(lesson => 
-          isLessonCompleted(lesson.id)
-        ).length;
-
-        return (
-          <div key={level} className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">{level}</h2>
-              <span className="text-sm text-gray-600">
-                {levelCompleted}/{levelLessons.length} completadas
-              </span>
+      {/* Lista de lecciones secuenciales */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Lecciones</h2>
+          {totalPages > 1 && (
+            <div className="text-sm text-gray-600">
+              Página {currentPage} de {totalPages} • {totalLessons} lecciones total
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {levelLessons.map((lesson) => {
-                const isCompleted = isLessonCompleted(lesson.id);
-                const isAvailable = isLessonAvailable(lesson);
-                
-                return (
-                  <div 
-                    key={lesson.id} 
-                    className={`bg-white rounded-lg shadow-lg p-6 relative ${
-                      !isAvailable ? 'opacity-60' : ''
-                    }`}
-                  >
-                    {/* Indicador de estado */}
-                    <div className="absolute top-4 right-4">
-                      {isCompleted ? (
-                        <FaCheckCircle className="text-2xl text-green-500" />
-                      ) : !isAvailable ? (
-                        <FaLock className="text-2xl text-gray-400" />
-                      ) : null}
-                    </div>
+          )}
+        </div>
 
-                    <h3 className="text-xl font-bold mb-2 pr-8">{lesson.title}</h3>
-                    <p className="text-gray-600 mb-4">{lesson.description}</p>
-                    
-                    <span 
-                      className={`badge mb-4 ${
-                        level === 'Principiante' ? 'badge-success' : 
-                        level === 'Intermedio' ? 'badge-warning' : 'badge-error'
-                      }`}
-                    >
-                      {lesson.level}
+        {currentLessons.map((lesson) => {
+          const isCompleted = isLessonCompleted(lesson.id);
+          const isAvailable = isLessonAvailable(lesson);
+
+          return (
+            <div
+              key={lesson.id}
+              className={`bg-white rounded-lg shadow-lg p-6 border-l-4 transition-all duration-200 ${isCompleted
+                ? 'border-green-500 bg-green-50'
+                : isAvailable
+                  ? 'border-blue-500 hover:shadow-xl'
+                  : 'border-gray-300 opacity-60'
+                }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <span className="text-sm font-medium text-gray-500 mr-3">
+                      Lección {lesson.order}
                     </span>
-                    
-                    <div className="mt-4">
-                      <button 
-                        className={`btn w-full ${
-                          isCompleted 
-                            ? 'btn-success' 
-                            : isAvailable 
-                              ? 'btn-primary' 
-                              : 'btn-disabled'
-                        }`}
-                        disabled={!isAvailable}
-                      >
-                        <FaBook className="mr-2" />
-                        {isCompleted 
-                          ? 'Repasar Lección' 
-                          : isAvailable 
-                            ? 'Comenzar Lección'
-                            : 'Bloqueada'
-                        }
-                      </button>
-                    </div>
-                    
-                    {!isAvailable && lesson.order > 1 && (
-                      <p className="text-xs text-gray-500 mt-2 text-center">
-                        Completa la lección anterior para desbloquear
-                      </p>
+                    {isCompleted && (
+                      <FaCheckCircle className="text-green-500 mr-2" />
+                    )}
+                    {!isAvailable && (
+                      <FaLock className="text-gray-400 mr-2" />
                     )}
                   </div>
-                );
-              })}
+
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {lesson.title}
+                  </h3>
+
+                  <p className="text-gray-600 mb-4">
+                    {lesson.description}
+                  </p>
+
+                  {!isAvailable && lesson.order > 1 && (
+                    <p className="text-sm text-gray-500 mb-4">
+                      Completa la lección anterior para desbloquear
+                    </p>
+                  )}
+                </div>
+
+                <div className="ml-6">
+                  <button
+                    className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 ${isCompleted
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : isAvailable
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    disabled={!isAvailable}
+                  >
+                    <FaBook />
+                    <span>
+                      {isCompleted
+                        ? 'Repasar'
+                        : isAvailable
+                          ? 'Comenzar'
+                          : 'Bloqueada'
+                      }
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Controles de paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center space-x-4 mt-8 mb-8">
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+          >
+            <FaChevronLeft className="text-sm" />
+            <span>Anterior</span>
+          </button>
+
+          <div className="flex space-x-2">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => goToPage(pageNumber)}
+                  className={`w-10 h-10 rounded-lg transition-colors ${currentPage === pageNumber
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
           </div>
-        );
-      })}
+
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+          >
+            <span>Siguiente</span>
+            <FaChevronRight className="text-sm" />
+          </button>
+        </div>
+      )}
 
       {/* Mensaje para usuarios no logueados */}
       {!user && (

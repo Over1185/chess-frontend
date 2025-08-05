@@ -122,28 +122,37 @@ export default function TeacherPanelView({ onBack, user }) {
 
             if (response.ok) {
                 const details = await response.json();
+
+                // Usar los datos del endpoint con los datos del estudiante básico
                 setStudentDetails({
-                    ...student,
+                    _id: student._id,
+                    username: details.username || student.username,
+                    email: details.email || student.email,
+                    elo: details.elo_actual || student.elo || 1200,
                     partidas_jugadas: details.partidas_jugadas || 0,
                     partidas_ganadas: details.partidas_ganadas || 0,
                     partidas_perdidas: details.partidas_perdidas || 0,
                     partidas_empatadas: details.partidas_empatadas || 0,
                     puzzles_resueltos: details.puzzles_resueltos || 0,
                     lecciones_completadas: details.lecciones_completadas || 0,
-                    fecha_registro: details.fecha_registro || student.created_at,
+                    fecha_registro: details.fecha_registro || "No disponible",
                     ultima_conexion: details.ultima_conexion || "No disponible"
                 });
             } else {
-                // Si el endpoint no existe, usar datos básicos
+                console.error("Error al obtener detalles:", response.status);
+                // Si el endpoint falla, usar datos básicos
                 setStudentDetails({
-                    ...student,
+                    _id: student._id,
+                    username: student.username,
+                    email: student.email,
+                    elo: student.elo || 1200,
                     partidas_jugadas: 0,
                     partidas_ganadas: 0,
                     partidas_perdidas: 0,
                     partidas_empatadas: 0,
                     puzzles_resueltos: 0,
                     lecciones_completadas: 0,
-                    fecha_registro: student.created_at || "No disponible",
+                    fecha_registro: "No disponible",
                     ultima_conexion: "No disponible"
                 });
             }
@@ -151,14 +160,17 @@ export default function TeacherPanelView({ onBack, user }) {
             console.error("Error cargando detalles del estudiante:", error);
             // Usar datos básicos en caso de error
             setStudentDetails({
-                ...student,
+                _id: student._id,
+                username: student.username,
+                email: student.email,
+                elo: student.elo || 1200,
                 partidas_jugadas: 0,
                 partidas_ganadas: 0,
                 partidas_perdidas: 0,
                 partidas_empatadas: 0,
                 puzzles_resueltos: 0,
                 lecciones_completadas: 0,
-                fecha_registro: student.created_at || "No disponible",
+                fecha_registro: "No disponible",
                 ultima_conexion: "No disponible"
             });
         } finally {
