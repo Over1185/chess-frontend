@@ -14,6 +14,7 @@ import LearnView from "./views/LearnView";
 import PlayView from "./views/PlayView";
 import StatsView from "./views/StatsView";
 import ClassroomsView from "./views/ClassroomsView";
+import AdminPanelView from "./views/AdminPanelView";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -138,6 +139,8 @@ export default function App() {
         return <StatsView user={user} onBack={() => setCurrentView("home")} />;
       case "classrooms":
         return <ClassroomsView user={user} onBack={() => setCurrentView("home")} />;
+      case "admin":
+        return <AdminPanelView user={user} onBack={() => setCurrentView("home")} />;
       case "online-lobby":
         return (
           <OnlineGameLobby

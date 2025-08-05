@@ -1,4 +1,4 @@
-import { FaChessQueen, FaUser, FaChalkboardTeacher, FaSignOutAlt, FaPuzzlePiece, FaPlay, FaBook, FaChartBar } from "react-icons/fa";
+import { FaChessQueen, FaUser, FaChalkboardTeacher, FaSignOutAlt, FaPuzzlePiece, FaPlay, FaBook, FaChartBar, FaCrown } from "react-icons/fa";
 
 export default function Header({ user, onLogout, setCurrentView }) {
   // Colores según tipo de usuario

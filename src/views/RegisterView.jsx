@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaChessQueen, FaUser, FaChalkboardTeacher, FaUserPlus, FaSignInAlt } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaChessQueen, FaUser, FaUserPlus, FaSignInAlt } from "react-icons/fa";
 import { registerUser } from "../utils/auth";
 
 export default function RegisterView({ setCurrentView }) {
@@ -111,36 +111,14 @@ export default function RegisterView({ setCurrentView }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Role selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Tipo de cuenta
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, role: "user" })}
-                className={`p-4 border-2 rounded-xl flex flex-col items-center space-y-2 transition-all duration-200 ${formData.role === "user"
-                  ? "border-blue-500 bg-blue-50 text-blue-700 shadow-lg scale-105"
-                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                  }`}
-                disabled={loading}
-              >
-                <FaUser className="text-2xl" />
-                <span className="font-semibold text-sm">Estudiante</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, role: "profesor" })}
-                className={`p-4 border-2 rounded-xl flex flex-col items-center space-y-2 transition-all duration-200 ${formData.role === "profesor"
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-lg scale-105"
-                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                  }`}
-                disabled={loading}
-              >
-                <FaChalkboardTeacher className="text-2xl" />
-                <span className="font-semibold text-sm">Profesor</span>
-              </button>
+          {/* Role selection removed - only students can register */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-center space-x-3">
+              <FaUser className="text-2xl text-blue-600" />
+              <div>
+                <h3 className="font-semibold text-blue-800">Registro de Estudiante</h3>
+                <p className="text-sm text-blue-600">Solo los estudiantes pueden registrarse en la plataforma</p>
+              </div>
             </div>
           </div>
 

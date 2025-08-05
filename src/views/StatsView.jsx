@@ -292,12 +292,10 @@ export default function StatsView({ user }) {
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Rol</span>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${estadisticas.usuario.rol === 'admin' ? 'bg-red-100 text-red-800' :
-                                    estadisticas.usuario.rol === 'teacher' ? 'bg-blue-100 text-blue-800' :
-                                        'bg-gray-100 text-gray-800'
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${estadisticas.usuario.rol === 'profesor' ? 'bg-emerald-100 text-emerald-800' :
+                                    'bg-gray-100 text-gray-800'
                                     }`}>
-                                    {estadisticas.usuario.rol === 'admin' ? 'Administrador' :
-                                        estadisticas.usuario.rol === 'teacher' ? 'Profesor' : 'Estudiante'}
+                                    {estadisticas.usuario.rol === 'profesor' ? 'Profesor/Administrador' : 'Estudiante'}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
