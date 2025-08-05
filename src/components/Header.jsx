@@ -1,4 +1,4 @@
-import { FaChessQueen, FaUser, FaChalkboardTeacher, FaSignOutAlt, FaPuzzlePiece, FaPlay, FaBook, FaChartBar, FaCrown } from "react-icons/fa";
+import { FaChessQueen, FaUser, FaSignOutAlt, FaPuzzlePiece, FaPlay, FaBook, FaChartBar, FaCrown } from "react-icons/fa";
 
 export default function Header({ user, onLogout, setCurrentView }) {
   // Colores según tipo de usuario
@@ -8,22 +8,24 @@ export default function Header({ user, onLogout, setCurrentView }) {
   };
 
   const getNavigationItems = () => {
-    const baseItems = [
-      { key: "home", label: "Inicio", icon: FaChessQueen },
-      { key: "play", label: "Jugar", icon: FaPlay },
-      { key: "puzzles", label: "Puzzles", icon: FaPuzzlePiece },
-      { key: "learn", label: "Lecciones", icon: FaBook },
-      { key: "stats", label: "Estadísticas", icon: FaChartBar },
-    ];
-
     if (user?.type === "profesor") {
-      baseItems.push(
-        { key: "classrooms", label: "Aulas", icon: FaChalkboardTeacher },
+      // Navegación para profesores - sin puzzles, lecciones ni aulas
+      return [
+        { key: "home", label: "Inicio", icon: FaChessQueen },
+        { key: "play", label: "Jugar", icon: FaPlay },
+        { key: "stats", label: "Estadísticas", icon: FaChartBar },
         { key: "teacher-panel", label: "Panel Profesor", icon: FaCrown }
-      );
+      ];
+    } else {
+      // Navegación para estudiantes - con puzzles y lecciones
+      return [
+        { key: "home", label: "Inicio", icon: FaChessQueen },
+        { key: "play", label: "Jugar", icon: FaPlay },
+        { key: "puzzles", label: "Puzzles", icon: FaPuzzlePiece },
+        { key: "learn", label: "Lecciones", icon: FaBook },
+        { key: "stats", label: "Estadísticas", icon: FaChartBar },
+      ];
     }
-
-    return baseItems;
   };
 
   return (
