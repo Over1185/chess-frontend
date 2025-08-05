@@ -70,7 +70,6 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
             case 'error':
                 console.error('Error:', lastMessage.message);
                 setIsSearching(false);
-                alert(`Error: ${lastMessage.message}`);
                 break;
 
             default:
@@ -79,7 +78,6 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
 
     const startSearch = () => {
         if (connectionStatus !== 'Connected') {
-            alert('Error de conexión. Intenta de nuevo en unos segundos.');
             return;
         }
 

@@ -144,19 +144,16 @@ export default function DynamicLessonView({ user }) {
                 const result = await response.json();
                 console.log("Lección completada exitosamente:", result);
 
-                // Mostrar mensaje de éxito
-                alert("¡Lección completada exitosamente! Tu progreso ha sido guardado.");
-
                 // Recargar la página para refrescar el progreso
                 window.location.reload();
             } else {
                 const errorData = await response.json();
                 console.error("Error al completar lección:", errorData);
-                alert("Error al guardar el progreso. Inténtalo de nuevo.");
             }
         } catch (error) {
             console.error("Error completing lesson:", error);
-            alert("Error de conexión al guardar el progreso.");
+
+            
         } finally {
             setCompletingLesson(false);
         }

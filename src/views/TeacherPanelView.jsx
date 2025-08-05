@@ -101,13 +101,11 @@ export default function TeacherPanelView({ onBack, user }) {
 
             if (response.ok) {
                 setStudents(students.filter(s => s._id !== studentId));
-                window.alert("Estudiante eliminado correctamente");
             } else {
-                window.alert("Error al eliminar estudiante");
+                console.warn("Error al eliminar estudiante");
             }
         } catch (error) {
             console.error("Error eliminando estudiante:", error);
-            window.alert("Error al eliminar estudiante");
         }
     };
 
@@ -223,13 +221,11 @@ export default function TeacherPanelView({ onBack, user }) {
                         : s
                 ));
                 cancelEdit();
-                window.alert("Estudiante actualizado correctamente");
             } else {
-                window.alert("Error al actualizar estudiante");
+                console.warn("Error al actualizar estudiante");
             }
         } catch (error) {
             console.error("Error actualizando estudiante:", error);
-            window.alert("Error al actualizar estudiante");
         }
     };
 
