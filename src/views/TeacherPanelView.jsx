@@ -18,7 +18,10 @@ import {
     FaBook,
     FaPuzzlePiece,
     FaCog,
-    FaArrowLeft
+    FaArrowLeft,
+    FaPlus,
+    FaSave,
+    FaTimes
 } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
 
@@ -33,6 +36,25 @@ export default function TeacherPanelView({ onBack, user }) {
     const [viewingStudent, setViewingStudent] = useState(null);
     const [studentDetails, setStudentDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+
+    // Estados para gestión de lecciones
+    const [lessons, setLessons] = useState([]);
+    const [showLessonModal, setShowLessonModal] = useState(false);
+    const [lessonModalMode, setLessonModalMode] = useState('create'); // 'create', 'edit', 'view'
+    const [editingLesson, setEditingLesson] = useState(null);
+    const [lessonForm, setLessonForm] = useState({
+        titulo: '',
+        descripcion: '',
+        contenido: '',
+        dificultad: 'Principiante',
+        orden: 1,
+        quiz: []
+    });
+    const [quizQuestion, setQuizQuestion] = useState({
+        pregunta: '',
+        opciones: ['', '', '', ''],
+        respuesta_correcta: 0
+    });
 
     // Función para cargar estudiantes
     const loadStudents = async () => {
@@ -229,6 +251,155 @@ export default function TeacherPanelView({ onBack, user }) {
         }
     };
 
+    // Funciones para gestión de lecciones
+    const loadLessons = async () => {
+        setLoading(true);
+        try {
+            const response = await authFetch("/admin/lecciones");
+            if (response.ok) {
+                const data = await response.json();
+                setLessons(data.lecciones || []);
+            } else {
+                console.error("Error al cargar lecciones:", response.status);
+            }
+        } catch (error) {
+            console.error("Error cargando lecciones:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openLessonModal = (mode, lesson = null) => {
+        setLessonModalMode(mode);
+        setEditingLesson(lesson);
+
+        if (mode === 'create') {
+            setLessonForm({
+                titulo: '',
+                descripcion: '',
+                contenido: '',
+                dificultad: 'Principiante',
+                orden: lessons.length + 1,
+                quiz: []
+            });
+        } else if (mode === 'edit' && lesson) {
+            setLessonForm({
+                titulo: lesson.titulo || '',
+                descripcion: lesson.descripcion || '',
+                contenido: lesson.contenido || '',
+                dificultad: lesson.dificultad || 'Principiante',
+                orden: lesson.orden || 1,
+                quiz: lesson.quiz || []
+            });
+        }
+
+        setShowLessonModal(true);
+    };
+
+    const closeLessonModal = () => {
+        setShowLessonModal(false);
+        setLessonModalMode('create');
+        setEditingLesson(null);
+        setLessonForm({
+            titulo: '',
+            descripcion: '',
+            contenido: '',
+            dificultad: 'Principiante',
+            orden: 1,
+            quiz: []
+        });
+        setQuizQuestion({
+            pregunta: '',
+            opciones: ['', '', '', ''],
+            respuesta_correcta: 0
+        });
+    };
+
+    const saveLesson = async () => {
+        try {
+            setLoading(true);
+
+            const lessonData = {
+                ...lessonForm,
+                orden: parseInt(lessonForm.orden)
+            };
+
+            let response;
+            if (lessonModalMode === 'create') {
+                response = await authFetch("/admin/lecciones", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(lessonData)
+                });
+            } else if (lessonModalMode === 'edit') {
+                response = await authFetch(`/admin/lecciones/${editingLesson._id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(lessonData)
+                });
+            }
+
+            if (response.ok) {
+                loadLessons(); // Recargar lecciones
+                closeLessonModal();
+                alert(lessonModalMode === 'create' ? 'Lección creada exitosamente' : 'Lección actualizada exitosamente');
+            } else {
+                const errorData = await response.json();
+                alert('Error al guardar la lección: ' + (errorData.detail || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error("Error guardando lección:", error);
+            alert('Error de conexión al guardar la lección');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteLesson = async (lessonId) => {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta lección?')) {
+            return;
+        }
+
+        try {
+            const response = await authFetch(`/admin/lecciones/${lessonId}`, {
+                method: "DELETE"
+            });
+
+            if (response.ok) {
+                loadLessons(); // Recargar lecciones
+                alert('Lección eliminada exitosamente');
+            } else {
+                alert('Error al eliminar la lección');
+            }
+        } catch (error) {
+            console.error("Error eliminando lección:", error);
+            alert('Error de conexión al eliminar la lección');
+        }
+    };
+
+    const addQuizQuestion = () => {
+        if (quizQuestion.pregunta.trim() && quizQuestion.opciones.every(opt => opt.trim())) {
+            setLessonForm({
+                ...lessonForm,
+                quiz: [...lessonForm.quiz, { ...quizQuestion }]
+            });
+            setQuizQuestion({
+                pregunta: '',
+                opciones: ['', '', '', ''],
+                respuesta_correcta: 0
+            });
+        } else {
+            alert('Por favor completa todos los campos de la pregunta');
+        }
+    };
+
+    const removeQuizQuestion = (index) => {
+        setLessonForm({
+            ...lessonForm,
+            quiz: lessonForm.quiz.filter((_, i) => i !== index)
+        });
+    };
+
     useEffect(() => {
         if (activeTab === "students") {
             loadStudents();
@@ -236,6 +407,8 @@ export default function TeacherPanelView({ onBack, user }) {
             loadGames();
         } else if (activeTab === "overview") {
             loadStatistics();
+        } else if (activeTab === "content") {
+            loadLessons();
         }
     }, [activeTab]);
 
@@ -246,6 +419,24 @@ export default function TeacherPanelView({ onBack, user }) {
         { key: "content", label: "Contenido", icon: FaChalkboardTeacher, count: null },
         { key: "settings", label: "Configuración", icon: FaUserShield, count: null }
     ];
+
+    // Verificar si el usuario es profesor
+    if (!user || user.role !== 'profesor') {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h1>
+                    <p className="text-gray-600 mb-4">No tienes permisos para acceder al panel de profesor.</p>
+                    <button
+                        onClick={onBack}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        Volver
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
@@ -541,47 +732,106 @@ export default function TeacherPanelView({ onBack, user }) {
                         {/* Tab de Contenido */}
                         {activeTab === "content" && (
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                                    Gestión de Contenido
-                                </h2>
-
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="bg-blue-50 rounded-xl p-6">
-                                        <h3 className="text-lg font-semibold text-blue-800 mb-4">
-                                            <FaBook className="inline mr-2" />
-                                            Lecciones
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                Crear Nueva Lección
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                Gestionar Lecciones
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                Asignar Lecciones
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-purple-50 rounded-xl p-6">
-                                        <h3 className="text-lg font-semibold text-purple-800 mb-4">
-                                            <FaPuzzlePiece className="inline mr-2" />
-                                            Puzzles
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
-                                                Crear Nuevo Puzzle
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
-                                                Gestionar Puzzles
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
-                                                Categorías de Puzzles
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        Gestión de Lecciones
+                                    </h2>
+                                    <button
+                                        onClick={() => openLessonModal('create')}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                    >
+                                        <FaPlus />
+                                        <span>Nueva Lección</span>
+                                    </button>
                                 </div>
+
+                                {loading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
+                                        <span className="text-gray-600">Cargando lecciones...</span>
+                                    </div>
+                                ) : lessons.length > 0 ? (
+                                    <div className="grid gap-6">
+                                        {lessons.map((lesson) => (
+                                            <div key={lesson._id || lesson.id} className="bg-white border rounded-xl p-6 shadow-sm">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-3 mb-3">
+                                                            <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                                Lección {lesson.orden || lesson.id}
+                                                            </span>
+                                                            <span className={`text-xs px-2 py-1 rounded-full ${lesson.dificultad === 'Principiante' ? 'bg-green-100 text-green-800' :
+                                                                lesson.dificultad === 'Intermedio' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    'bg-red-100 text-red-800'
+                                                                }`}>
+                                                                {lesson.dificultad}
+                                                            </span>
+                                                        </div>
+
+                                                        <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                                            {lesson.titulo}
+                                                        </h3>
+
+                                                        <p className="text-gray-600 mb-4">
+                                                            {lesson.descripcion}
+                                                        </p>
+
+                                                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                            <span>
+                                                                <FaBook className="inline mr-1" />
+                                                                {lesson.quiz?.length || 0} preguntas
+                                                            </span>
+                                                            <span>
+                                                                Contenido: {lesson.contenido ? lesson.contenido.length : 0} caracteres
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex space-x-2 ml-4">
+                                                        <button
+                                                            onClick={() => openLessonModal('view', lesson)}
+                                                            className="text-blue-500 hover:text-blue-700 p-2 rounded transition-colors"
+                                                            title="Ver detalles"
+                                                        >
+                                                            <FaEye />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openLessonModal('edit', lesson)}
+                                                            className="text-emerald-500 hover:text-emerald-700 p-2 rounded transition-colors"
+                                                            title="Editar"
+                                                        >
+                                                            <FaEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteLesson(lesson._id || lesson.id)}
+                                                            className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
+                                                            title="Eliminar"
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-16 bg-gray-50 rounded-xl">
+                                        <FaBook className="text-6xl text-gray-300 mx-auto mb-6" />
+                                        <h3 className="text-2xl font-semibold text-gray-600 mb-4">
+                                            No hay lecciones creadas
+                                        </h3>
+                                        <p className="text-lg text-gray-500 mb-6">
+                                            Crea tu primera lección para comenzar
+                                        </p>
+                                        <button
+                                            onClick={() => openLessonModal('create')}
+                                            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                        >
+                                            <FaPlus className="inline mr-2" />
+                                            Crear Primera Lección
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -769,6 +1019,233 @@ export default function TeacherPanelView({ onBack, user }) {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Gestión de Lecciones */}
+            {showLessonModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            {/* Header del Modal */}
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-2xl font-bold text-gray-800">
+                                    {lessonModalMode === 'create' ? 'Crear Nueva Lección' :
+                                        lessonModalMode === 'edit' ? 'Editar Lección' : 'Ver Lección'}
+                                </h3>
+                                <button
+                                    onClick={closeLessonModal}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <FaTimes className="text-gray-500" />
+                                </button>
+                            </div>
+
+                            {/* Contenido del Modal */}
+                            <div className="space-y-6">
+                                {/* Información Básica */}
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Título de la Lección
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={lessonForm.titulo}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, titulo: e.target.value })}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                            placeholder="Ej: Introducción al Ajedrez"
+                                            disabled={lessonModalMode === 'view'}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Orden de la Lección
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={lessonForm.orden}
+                                            onChange={(e) => setLessonForm({ ...lessonForm, orden: e.target.value })}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                            min="1"
+                                            disabled={lessonModalMode === 'view'}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Descripción
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={lessonForm.descripcion}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, descripcion: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                        placeholder="Descripción breve de la lección"
+                                        disabled={lessonModalMode === 'view'}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Dificultad
+                                    </label>
+                                    <select
+                                        value={lessonForm.dificultad}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, dificultad: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                        disabled={lessonModalMode === 'view'}
+                                    >
+                                        <option value="Principiante">Principiante</option>
+                                        <option value="Intermedio">Intermedio</option>
+                                        <option value="Avanzado">Avanzado</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Contenido de la Lección
+                                    </label>
+                                    <textarea
+                                        value={lessonForm.contenido}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, contenido: e.target.value })}
+                                        className="w-full h-40 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                        placeholder="Escribe el contenido completo de la lección aquí..."
+                                        disabled={lessonModalMode === 'view'}
+                                    />
+                                </div>
+
+                                {/* Sección de Quiz */}
+                                {lessonModalMode !== 'view' && (
+                                    <div className="border-t pt-6">
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-4">Quiz de la Lección</h4>
+
+                                        {/* Preguntas existentes */}
+                                        {lessonForm.quiz.length > 0 && (
+                                            <div className="space-y-4 mb-6">
+                                                {lessonForm.quiz.map((question, index) => (
+                                                    <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h5 className="font-medium text-gray-800">
+                                                                Pregunta {index + 1}: {question.pregunta}
+                                                            </h5>
+                                                            <button
+                                                                onClick={() => removeQuizQuestion(index)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                <FaTrash />
+                                                            </button>
+                                                        </div>
+                                                        <div className="text-sm text-gray-600">
+                                                            {question.opciones.map((option, optIndex) => (
+                                                                <div key={optIndex} className={`${optIndex === question.respuesta_correcta ? 'font-semibold text-green-600' : ''}`}>
+                                                                    {optIndex + 1}. {option}
+                                                                    {optIndex === question.respuesta_correcta && ' ✓'}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Agregar nueva pregunta */}
+                                        <div className="bg-blue-50 rounded-lg p-4">
+                                            <h5 className="font-medium text-blue-800 mb-3">Agregar Nueva Pregunta</h5>
+
+                                            <div className="space-y-3">
+                                                <input
+                                                    type="text"
+                                                    value={quizQuestion.pregunta}
+                                                    onChange={(e) => setQuizQuestion({ ...quizQuestion, pregunta: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                                    placeholder="Escribe la pregunta"
+                                                />
+
+                                                {quizQuestion.opciones.map((option, index) => (
+                                                    <div key={index} className="flex items-center space-x-3">
+                                                        <input
+                                                            type="radio"
+                                                            name="correct-answer"
+                                                            checked={quizQuestion.respuesta_correcta === index}
+                                                            onChange={() => setQuizQuestion({ ...quizQuestion, respuesta_correcta: index })}
+                                                            className="text-emerald-600"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={option}
+                                                            onChange={(e) => {
+                                                                const newOptions = [...quizQuestion.opciones];
+                                                                newOptions[index] = e.target.value;
+                                                                setQuizQuestion({ ...quizQuestion, opciones: newOptions });
+                                                            }}
+                                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2"
+                                                            placeholder={`Opción ${index + 1}`}
+                                                        />
+                                                    </div>
+                                                ))}
+
+                                                <button
+                                                    onClick={addQuizQuestion}
+                                                    className="w-full py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                                                >
+                                                    <FaPlus className="inline mr-2" />
+                                                    Agregar Pregunta
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Quiz existente (solo vista) */}
+                                {lessonModalMode === 'view' && lessonForm.quiz.length > 0 && (
+                                    <div className="border-t pt-6">
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-4">Quiz de la Lección</h4>
+                                        <div className="space-y-4">
+                                            {lessonForm.quiz.map((question, index) => (
+                                                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                                    <h5 className="font-medium text-gray-800 mb-2">
+                                                        Pregunta {index + 1}: {question.pregunta}
+                                                    </h5>
+                                                    <div className="text-sm text-gray-600">
+                                                        {question.opciones.map((option, optIndex) => (
+                                                            <div key={optIndex} className={`${optIndex === question.respuesta_correcta ? 'font-semibold text-green-600' : ''}`}>
+                                                                {optIndex + 1}. {option}
+                                                                {optIndex === question.respuesta_correcta && ' ✓'}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Botones del Modal */}
+                            <div className="flex justify-end space-x-4 mt-8 pt-6 border-t">
+                                <button
+                                    onClick={closeLessonModal}
+                                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    {lessonModalMode === 'view' ? 'Cerrar' : 'Cancelar'}
+                                </button>
+
+                                {lessonModalMode !== 'view' && (
+                                    <button
+                                        onClick={saveLesson}
+                                        disabled={loading}
+                                        className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                                    >
+                                        {loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                                        <span>{loading ? 'Guardando...' : 'Guardar Lección'}</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

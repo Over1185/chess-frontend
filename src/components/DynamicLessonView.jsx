@@ -22,44 +22,61 @@ export default function DynamicLessonView({ user }) {
             try {
                 setLoading(true);
 
-                // Cargar todas las lecciones
-                const leccionesResponse = await authFetch(`/lecciones`);
-                if (leccionesResponse.ok) {
-                    const leccionesData = await leccionesResponse.json();
-                    const lecciones = leccionesData.lecciones || [];
+                // Primero intentar cargar la lección directamente por ID
+                let lessonData = null;
+                try {
+                    const leccionResponse = await authFetch(`/lecciones/${lessonId}`);
+                    if (leccionResponse.ok) {
+                        lessonData = await leccionResponse.json();
+                    }
+                } catch (error) {
+                    console.log("Lección no encontrada por ID, buscando en lista completa");
+                }
 
-                    // Buscar la lección específica por ID
-                    const lessonData = lecciones.find(l => l.id === parseInt(lessonId) || l._id === lessonId);
+                // Si no se encontró por ID, buscar en la lista completa (lecciones antiguas)
+                if (!lessonData) {
+                    const leccionesResponse = await authFetch(`/lecciones`);
+                    if (leccionesResponse.ok) {
+                        const leccionesData = await leccionesResponse.json();
+                        const lecciones = leccionesData.lecciones || [];
 
-                    if (lessonData) {
-                        setLesson(lessonData);
+                        // Buscar la lección específica por ID o por número de orden
+                        lessonData = lecciones.find(l =>
+                            l.id === parseInt(lessonId) ||
+                            l._id === lessonId ||
+                            l.orden === parseInt(lessonId)
+                        );
+                    }
+                }
 
-                        // Cargar progreso del usuario
-                        const progresoResponse = await authFetch(`/progreso-lecciones`);
-                        if (progresoResponse.ok) {
-                            const progresoData = await progresoResponse.json();
-                            const progreso = progresoData.progreso_lecciones || [];
+                if (lessonData) {
+                    setLesson(lessonData);
 
-                            // Verificar si esta lección ya está completada
-                            const leccionCompletada = progreso.find(p =>
-                                p.leccion_id === lessonId || p.leccion_id === lessonData.id.toString()
-                            );
+                    // Cargar progreso del usuario
+                    const progresoResponse = await authFetch(`/progreso-lecciones`);
+                    if (progresoResponse.ok) {
+                        const progresoData = await progresoResponse.json();
+                        const progreso = progresoData.progreso_lecciones || [];
 
-                            if (leccionCompletada && leccionCompletada.completada) {
-                                setQuizCompleted(true);
-                                setQuizResults({
-                                    score: leccionCompletada.puntuacion || 100,
-                                    passed: true,
-                                    correctAnswers: lessonData.quiz?.length || 0,
-                                    totalQuestions: lessonData.quiz?.length || 0
-                                });
-                            }
+                        // Verificar si esta lección ya está completada
+                        const leccionCompletada = progreso.find(p =>
+                            p.leccion_id === lessonId ||
+                            p.leccion_id === lessonData.id?.toString() ||
+                            p.leccion_id === lessonData._id
+                        );
+
+                        if (leccionCompletada && leccionCompletada.completada) {
+                            setQuizCompleted(true);
+                            setQuizResults({
+                                score: leccionCompletada.puntuacion || 100,
+                                passed: true,
+                                correctAnswers: lessonData.quiz?.length || 0,
+                                totalQuestions: lessonData.quiz?.length || 0
+                            });
                         }
-                    } else {
-                        setError("Lección no encontrada");
                     }
                 } else {
-                    setError("Error al cargar las lecciones");
+                    setError("Lección no encontrada");
                 }
             } catch (err) {
                 console.error("Error loading lesson:", err);
@@ -153,7 +170,7 @@ export default function DynamicLessonView({ user }) {
         } catch (error) {
             console.error("Error completing lesson:", error);
 
-            
+
         } finally {
             setCompletingLesson(false);
         }
