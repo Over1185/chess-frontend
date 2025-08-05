@@ -1,96 +1,108 @@
-import ChessBoardPractice from "../components/ChessBoardPractice";
-import { FaPlay, FaUser, FaChartBar, FaBook } from "react-icons/fa";
+import { FaPlay, FaUsers, FaChartBar, FaBook, FaPuzzlePiece, FaTrophy } from "react-icons/fa";
 
 export default function HomeView({ user, setCurrentView }) {
-  // Función para obtener el color del botón según el tipo de usuario
-  const getButtonStyle = (baseStyle) => {
-    if (!user) return baseStyle; // Si no hay usuario, usar estilo por defecto
-    
-    if (user.type === "profesor") {
-      // Colores para profesores (azul)
-      return `${baseStyle} bg-blue-600 hover:bg-blue-700 text-white border-blue-600`;
-    } else {
-      // Colores para estudiantes (verde)
-      return `${baseStyle} bg-green-600 hover:bg-green-700 text-white border-green-600`;
-    }
-  };
+    const quickActions = [
+        {
+            key: "play",
+            title: "Jugar",
+            description: "Inicia una nueva partida",
+            icon: FaPlay,
+            color: "bg-blue-500 hover:bg-blue-600",
+            primary: true
+        },
+        {
+            key: "puzzles",
+            title: "Puzzles",
+            description: "Resuelve problemas tácticos",
+            icon: FaPuzzlePiece,
+            color: "bg-purple-500 hover:bg-purple-600"
+        },
+        {
+            key: "learn",
+            title: "Lecciones",
+            description: "Aprende nuevas técnicas",
+            icon: FaBook,
+            color: "bg-green-500 hover:bg-green-600"
+        },
+        {
+            key: "stats",
+            title: "Estadísticas",
+            description: "Ve tu progreso",
+            icon: FaChartBar,
+            color: "bg-indigo-500 hover:bg-indigo-600"
+        }
+    ];
 
-  const getSecondaryButtonStyle = (baseStyle) => {
-    if (!user) return baseStyle;
-    
-    if (user.type === "profesor") {
-      return `${baseStyle} border-blue-600 text-blue-600 hover:bg-blue-50`;
-    } else {
-      return `${baseStyle} border-green-600 text-green-600 hover:bg-green-50`;
-    }
-  };
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
+            <div className="max-w-6xl mx-auto">
+                {/* Bienvenida */}
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                        ¡Bienvenido de vuelta, {user?.name || user?.username}!
+                    </h1>
+                    <p className="text-xl text-gray-600">
+                        {user?.type === "profesor"
+                            ? "Gestiona tus clases y estudiantes"
+                            : "Continúa tu entrenamiento de ajedrez"
+                        }
+                    </p>
+                </div>
 
-  return (
-    <div className="flex flex-col xl:flex-row p-6 gap-8 max-w-full mx-auto">
-      {/* Tablero */}
-      <section className="flex-1 flex justify-center">
-        <ChessBoardPractice />
-      </section>
+                <div className="grid lg:grid-cols-3 gap-6 mb-8">
+                    {/* Estadísticas del usuario */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Tu Progreso</h3>
+                            <div className="grid md:grid-cols-3 gap-4">
+                                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                    <FaTrophy className="text-3xl text-blue-500 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600">Rating ELO</p>
+                                    <p className="text-2xl font-bold text-blue-600">{user?.rating || 1200}</p>
+                                </div>
+                                <div className="text-center p-4 bg-green-50 rounded-lg">
+                                    <FaUsers className="text-3xl text-green-500 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600">Partidas Jugadas</p>
+                                    <p className="text-2xl font-bold text-green-600">0</p>
+                                </div>
+                                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                                    <FaPuzzlePiece className="text-3xl text-purple-500 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600">Puzzles Resueltos</p>
+                                    <p className="text-2xl font-bold text-purple-600">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-      {/* Panel lateral */}
-      <section className="flex flex-col space-y-4 max-w-sm mx-auto xl:mx-0 flex-shrink-0">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-bold mb-4 text-gray-800">Acciones Rápidas</h3>
-          <div className="space-y-3">
-            <button
-              onClick={() => setCurrentView("play")}
-              className={getButtonStyle("w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors")}
-            >
-              <FaPlay />
-              <span>Jugar con un extraño</span>
-            </button>
-            <button
-              onClick={() => setCurrentView("play")}
-              className={getSecondaryButtonStyle("w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors border")}
-            >
-              <FaUser />
-              <span>Jugar contra un amigo</span>
-            </button>
-            <button
-              onClick={() => setCurrentView("stats")}
-              className={getButtonStyle("w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed")}
-              disabled={!user}
-            >
-              <FaChartBar />
-              <span>Ver estadísticas</span>
-            </button>
-            <button
-              onClick={() => setCurrentView("classrooms")}
-              className={getSecondaryButtonStyle("w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors border")}
-            >
-              <FaBook />
-              <span>Ver aulas</span>
-            </button>
-          </div>
-        </div>
+                    {/* Acciones rápidas */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Acciones Rápidas</h3>
+                        <div className="space-y-3">
+                            {quickActions.map(({ key, title, description, icon: Icon, color, primary }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setCurrentView(key)}
+                                    className={`w-full p-4 rounded-lg text-white font-medium transition-all transform hover:scale-105 active:scale-95 ${color} ${primary ? "shadow-lg" : "shadow-md"} flex items-center justify-between`}
+                                >
+                                    <div className="text-left">
+                                        <h4 className="font-bold">{title}</h4>
+                                        <p className="text-sm opacity-90">{description}</p>
+                                    </div>
+                                    <Icon className="text-2xl" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
 
-        {user && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">Mi Perfil</h3>
-            <div className="space-y-2">
-              <p>
-                <strong>Usuario:</strong> {user.name}
-              </p>
-              <p>
-                <strong>Tipo:</strong> {user.type === "profesor" ? "Profesor" : "Estudiante"}
-              </p>
-              <p>
-                <strong>Rating (ELO):</strong> {user.rating}
-              </p>
-              {user.email && (
-                <p>
-                  <strong>Email:</strong> {user.email}
-                </p>
-              )}
+                {/* Actividad reciente */}
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">Actividad Reciente</h3>
+                    <div className="text-center py-8 text-gray-500">
+                        <p>No hay actividad reciente. ¡Comienza jugando una partida!</p>
+                    </div>
+                </div>
             </div>
-          </div>
-        )}
-      </section>
-    </div>
-  );
+        </div>
+    );
 }

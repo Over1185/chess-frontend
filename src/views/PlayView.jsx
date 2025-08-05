@@ -1,30 +1,60 @@
-import { FaUser } from "react-icons/fa";
+import { FaPlay, FaUsers, FaCog } from "react-icons/fa";
 
-export default function PlayView({ user, onBack }) {
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-4xl font-bold text-gray-800">Jugar</h1>
-        <button onClick={onBack} className="btn btn-outline">
-          Volver al Home
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <FaUser className="text-6xl text-blue-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Partida Rápida</h2>
-          <p className="text-gray-600 mb-6">Juega contra un oponente aleatorio</p>
-          <button className="btn btn-primary btn-lg">Buscar Partida</button>
+export default function PlayView({ setCurrentView }) {
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-4xl font-bold text-center text-gray-800 mb-8">
+                    ¿Cómo quieres jugar?
+                </h1>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                    {/* Jugar contra la computadora */}
+                    <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <FaCog className="text-3xl text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                                Contra la Computadora
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Juega contra Stockfish con diferentes niveles de dificultad
+                            </p>
+                            <button
+                                onClick={() => setCurrentView("game-computer")}
+                                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+                            >
+                                <FaPlay />
+                                <span>Jugar vs IA</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Jugar contra otro jugador */}
+                    <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <FaUsers className="text-3xl text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                                Contra Otro Jugador
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Busca una partida en línea o juega con un amigo
+                            </p>
+                            <button
+                                onClick={() => setCurrentView("online-lobby")}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+                            >
+                                <FaPlay />
+                                <span>Jugar Online</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <FaUser className="text-6xl text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Jugar con Amigo</h2>
-          <p className="text-gray-600 mb-6">Crea una sala privada para jugar</p>
-          <button className="btn btn-success btn-lg">Crear Sala</button>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
