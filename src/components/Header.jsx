@@ -1,6 +1,10 @@
 import { FaChessQueen, FaUser, FaSignOutAlt, FaPuzzlePiece, FaPlay, FaBook, FaChartBar, FaCrown } from "react-icons/fa";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export default function Header({ user, onLogout, setCurrentView }) {
+export default function Header({ user, onLogout }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Colores según tipo de usuario
   const getUserColor = () => {
     if (!user) return "bg-slate-800";
@@ -11,21 +15,26 @@ export default function Header({ user, onLogout, setCurrentView }) {
     if (user?.type === "profesor") {
       // Navegación para profesores - sin puzzles, lecciones ni aulas
       return [
-        { key: "home", label: "Inicio", icon: FaChessQueen },
-        { key: "play", label: "Jugar", icon: FaPlay },
-        { key: "stats", label: "Estadísticas", icon: FaChartBar },
-        { key: "teacher-panel", label: "Panel Profesor", icon: FaCrown }
+        { path: "/home", label: "Inicio", icon: FaChessQueen },
+        { path: "/play", label: "Jugar", icon: FaPlay },
+        { path: "/stats", label: "Estadísticas", icon: FaChartBar },
+        { path: "/teacher-panel", label: "Panel Profesor", icon: FaCrown }
       ];
     } else {
       // Navegación para estudiantes - con puzzles y lecciones
       return [
-        { key: "home", label: "Inicio", icon: FaChessQueen },
-        { key: "play", label: "Jugar", icon: FaPlay },
-        { key: "puzzles", label: "Puzzles", icon: FaPuzzlePiece },
-        { key: "learn", label: "Lecciones", icon: FaBook },
-        { key: "stats", label: "Estadísticas", icon: FaChartBar },
+        { path: "/home", label: "Inicio", icon: FaChessQueen },
+        { path: "/play", label: "Jugar", icon: FaPlay },
+        { path: "/puzzles", label: "Puzzles", icon: FaPuzzlePiece },
+        { path: "/learn", label: "Lecciones", icon: FaBook },
+        { path: "/stats", label: "Estadísticas", icon: FaChartBar },
       ];
     }
+  };
+
+  const isActivePath = (path) => {
+    return location.pathname === path ||
+      (path === "/learn" && location.pathname.startsWith("/learn/"));
   };
 
   return (
@@ -40,11 +49,14 @@ export default function Header({ user, onLogout, setCurrentView }) {
 
           {/* Navegación desktop */}
           <nav className="hidden md:flex space-x-6">
-            {getNavigationItems().map(({ key, label, icon: IconComponent }) => (
+            {getNavigationItems().map(({ path, label, icon: IconComponent }) => (
               <button
-                key={key}
-                onClick={() => setCurrentView(key)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                key={path}
+                onClick={() => navigate(path)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActivePath(path)
+                    ? "bg-white/20 text-white"
+                    : "hover:bg-white/10"
+                  }`}
               >
                 <IconComponent className="text-sm" />
                 <span>{label}</span>
@@ -73,11 +85,14 @@ export default function Header({ user, onLogout, setCurrentView }) {
 
         {/* Navegación móvil */}
         <nav className="md:hidden mt-4 flex space-x-1 overflow-x-auto">
-          {getNavigationItems().map(({ key, label, icon: IconComponent }) => (
+          {getNavigationItems().map(({ path, label, icon: IconComponent }) => (
             <button
-              key={key}
-              onClick={() => setCurrentView(key)}
-              className="flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors whitespace-nowrap"
+              key={path}
+              onClick={() => navigate(path)}
+              className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${isActivePath(path)
+                  ? "bg-white/20 text-white"
+                  : "hover:bg-white/10"
+                }`}
             >
               <IconComponent className="text-sm" />
               <span className="text-sm">{label}</span>

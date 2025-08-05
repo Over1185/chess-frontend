@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { getUserFromToken, isAuthenticated, checkSessionValidity, clearAuthData } from "./utils/auth";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import OnlineGameLobby from "./components/OnlineGameLobby";
 import ChessBoardOnline from "./components/ChessBoardOnline";
+import DynamicLessonView from "./components/DynamicLessonView";
 
 import HomeView from "./views/HomeView";
 import LoginView from "./views/LoginView";
@@ -34,7 +36,8 @@ export default function App() {
             email: userData.email,
             type: userData.role,
             rating: userData.elo || 1200,
-            token: localStorage.getItem("token")
+            token: localStorage.getItem("token"),
+            lecciones_vistas: userData.lecciones_vistas || [] // Agregar progreso de lecciones
           });
           setCurrentView("home");
         } else {
@@ -64,7 +67,10 @@ export default function App() {
 
   // Función de login actualizada
   function login(userData) {
-    setUser(userData);
+    setUser({
+      ...userData,
+      lecciones_vistas: userData.lecciones_vistas || []
+    });
     setCurrentView("home");
   }
 
@@ -74,28 +80,13 @@ export default function App() {
     clearAuthData();
   }
 
-  // Mostrar pantalla de carga mientras verificamos autenticación
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Verificando autenticación...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Si no hay usuario autenticado, mostrar solo login y register
-  if (!user) {
-    switch (currentView) {
-      case "register":
-        return <RegisterView setCurrentView={setCurrentView} />;
-      case "login":
-      default:
-        return <LoginView onLogin={login} setCurrentView={setCurrentView} />;
-    }
-  }
+  // Función para actualizar progreso de lecciones
+  const updateUserProgress = (newProgress) => {
+    setUser(prev => ({
+      ...prev,
+      lecciones_vistas: newProgress
+    }));
+  };
 
   // Funciones para manejar las partidas online
   const handleGameStart = (gameStartData) => {
@@ -117,62 +108,92 @@ export default function App() {
     console.log('player_color final:', formattedGameData.player_color);
 
     setGameData(formattedGameData);
-    setCurrentView("chess-game");
+    // Navegar a la partida será manejado por React Router
   };
 
   // Función para terminar partida
   const handleGameEnd = () => {
     setGameData(null);
-    setCurrentView("play");
+    // Navegar de vuelta al lobby será manejado por React Router
   };
 
-  // Renderiza la vista actual (solo cuando hay usuario autenticado)
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case "puzzles":
-        return <PuzzlesView user={user} onBack={() => setCurrentView("home")} />;
-      case "learn":
-        return <LearnView user={user} onBack={() => setCurrentView("home")} />;
-      case "play":
-        return <PlayView user={user} setCurrentView={setCurrentView} />;
-      case "stats":
-        return <StatsView user={user} onBack={() => setCurrentView("home")} />;
-      case "classrooms":
-        return <ClassroomsView user={user} onBack={() => setCurrentView("home")} />;
-      case "teacher-panel":
-        // Solo profesores pueden acceder al panel
-        if (user?.type === "profesor") {
-          return <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />;
-        } else {
-          return <HomeView user={user} setCurrentView={setCurrentView} />;
-        }
-      case "online-lobby":
-        return (
-          <OnlineGameLobby
-            user={user}
-            onGameStart={handleGameStart}
-            onBack={() => setCurrentView("play")}
-          />
-        );
-      case "chess-game":
-        return (
-          <ChessBoardOnline
-            gameData={gameData}
-            user={user}
-            onGameEnd={handleGameEnd}
-          />
-        );
-      case "home":
-      default:
-        return <HomeView user={user} setCurrentView={setCurrentView} />;
-    }
-  };
+  // Mostrar pantalla de carga mientras verificamos autenticación
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Si no hay usuario autenticado, mostrar solo login y register
+  if (!user) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/register" element={<RegisterView setCurrentView={setCurrentView} />} />
+          <Route path="*" element={<LoginView onLogin={login} setCurrentView={setCurrentView} />} />
+        </Routes>
+      </Router>
+    );
+  }
+
+  // Usuario autenticado - mostrar aplicación completa con rutas
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header user={user} onLogout={logout} setCurrentView={setCurrentView} />
-      <main className="flex-grow">{renderCurrentView()}</main>
-      <Footer user={user} />
-    </div>
+    <Router>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <Header user={user} onLogout={logout} />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
+            <Route path="/home" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
+            <Route path="/puzzles" element={<PuzzlesView user={user} onBack={() => setCurrentView("home")} />} />
+            <Route path="/learn" element={<LearnView user={user} onBack={() => setCurrentView("home")} />} />
+            <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
+            <Route path="/play" element={<PlayView user={user} setCurrentView={setCurrentView} />} />
+            <Route path="/stats" element={<StatsView user={user} onBack={() => setCurrentView("home")} />} />
+            <Route path="/classrooms" element={<ClassroomsView user={user} onBack={() => setCurrentView("home")} />} />
+            <Route
+              path="/teacher-panel"
+              element={
+                user?.type === "profesor"
+                  ? <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />
+                  : <Navigate to="/home" replace />
+              }
+            />
+            <Route
+              path="/online-lobby"
+              element={
+                <OnlineGameLobby
+                  user={user}
+                  onGameStart={handleGameStart}
+                  onBack={() => setCurrentView("play")}
+                />
+              }
+            />
+            <Route
+              path="/chess-game"
+              element={
+                gameData ? (
+                  <ChessBoardOnline
+                    gameData={gameData}
+                    user={user}
+                    onGameEnd={handleGameEnd}
+                  />
+                ) : (
+                  <Navigate to="/play" replace />
+                )
+              }
+            />
+            {/* Ruta por defecto */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </main>
+        <Footer user={user} />
+      </div>
+    </Router>
   );
 }

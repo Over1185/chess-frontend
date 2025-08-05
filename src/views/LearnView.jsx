@@ -1,43 +1,95 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaBook, FaCheckCircle, FaLock, FaArrowLeft, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { authFetch } from "../utils/auth";
 
 export default function LearnView({ user, onBack }) {
   // Estado para la paginación
   const [currentPage, setCurrentPage] = useState(1);
   const lessonsPerPage = 6;
+  const navigate = useNavigate();
 
-  // Lecciones disponibles - 3 lecciones por defecto (paginación activada cuando hay más de 6)
-  const allLessons = [
+  // Estado para lecciones cargadas desde el backend
+  const [allLessons, setAllLessons] = useState([]);
+  const [userProgress, setUserProgress] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar lecciones y progreso desde el backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+
+        // Cargar lecciones
+        const leccionesResponse = await authFetch("/users/lecciones");
+        let lecciones = [];
+
+        if (leccionesResponse.ok) {
+          const leccionesData = await leccionesResponse.json();
+          lecciones = leccionesData.lecciones || [];
+        } else {
+          // Usar lecciones por defecto si no hay en el backend
+          lecciones = getDefaultLessons();
+        }
+
+        setAllLessons(lecciones);
+
+        // Cargar progreso del usuario
+        if (user) {
+          const progresoResponse = await authFetch("/users/progreso-lecciones");
+          if (progresoResponse.ok) {
+            const progresoData = await progresoResponse.json();
+            setUserProgress(progresoData.progreso_lecciones || []);
+          }
+        }
+
+      } catch (error) {
+        console.error("Error loading data:", error);
+        // Usar lecciones por defecto en caso de error
+        setAllLessons(getDefaultLessons());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  // Función para obtener lecciones por defecto (fallback)
+  const getDefaultLessons = () => [
     {
       id: 1,
-      title: "Introducción al Ajedrez",
-      description: "Aprende las reglas básicas y cómo se mueven las piezas",
-      order: 1
+      titulo: "Introducción al Ajedrez",
+      descripcion: "Aprende las reglas básicas y cómo se mueven las piezas",
+      orden: 1
     },
     {
       id: 2,
-      title: "Tácticas Fundamentales",
-      description: "Descubre las tácticas básicas: clavada, horquilla y pincho",
-      order: 2
+      titulo: "Tácticas Fundamentales",
+      descripcion: "Descubre las tácticas básicas: clavada, horquilla y pincho",
+      orden: 2
     },
     {
       id: 3,
-      title: "Finales Básicos",
-      description: "Aprende técnicas esenciales para ganar en el final",
-      order: 3
+      titulo: "Finales Básicos",
+      descripcion: "Aprende técnicas esenciales para ganar en el final",
+      orden: 3
     }
   ];
 
-  // Lecciones completadas por el usuario
-  const userCompletedLessons = user?.lecciones_vistas || [];
-
   // Función para determinar si una lección está disponible
   const isLessonAvailable = (lesson) => {
-    if (lesson.order === 1) return true; // Primera lección siempre disponible
+    const lessonOrder = lesson.orden || lesson.order || lesson.id;
+
+    if (lessonOrder === 1) return true; // Primera lección siempre disponible
 
     // Verificar si la lección anterior está completada
-    const previousLessonCompleted = userCompletedLessons.some(
-      completedId => completedId === lesson.id - 1
+    const previousLessonId = lessonOrder - 1;
+    const previousLessonCompleted = userProgress.some(
+      progress => {
+        const progressLessonId = parseInt(progress.leccion_id);
+        return progressLessonId === previousLessonId && progress.completada;
+      }
     );
 
     return previousLessonCompleted;
@@ -45,13 +97,18 @@ export default function LearnView({ user, onBack }) {
 
   // Función para determinar si una lección está completada
   const isLessonCompleted = (lessonId) => {
-    return userCompletedLessons.includes(lessonId);
+    return userProgress.some(
+      progress => {
+        const progressLessonId = parseInt(progress.leccion_id);
+        return progressLessonId === lessonId && progress.completada;
+      }
+    );
   };
 
   // Calcular progreso
   const totalLessons = allLessons.length;
-  const completedCount = userCompletedLessons.length;
-  const progressPercentage = Math.round((completedCount / totalLessons) * 100);
+  const completedCount = userProgress.filter(p => p.completada).length;
+  const progressPercentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   // Lógica de paginación
   const totalPages = Math.ceil(totalLessons / lessonsPerPage);
@@ -75,6 +132,23 @@ export default function LearnView({ user, onBack }) {
   const goToPage = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
+
+  // Función para abrir lección usando React Router
+  const openLesson = (lesson) => {
+    navigate(`/learn/${lesson.id}`);
+  };
+
+  // Mostrar estado de carga
+  if (loading) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando lecciones...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -132,6 +206,9 @@ export default function LearnView({ user, onBack }) {
         {currentLessons.map((lesson) => {
           const isCompleted = isLessonCompleted(lesson.id);
           const isAvailable = isLessonAvailable(lesson);
+          const lessonTitle = lesson.titulo || lesson.title;
+          const lessonDescription = lesson.descripcion || lesson.description;
+          const lessonOrder = lesson.orden || lesson.order || lesson.id;
 
           return (
             <div
@@ -147,7 +224,7 @@ export default function LearnView({ user, onBack }) {
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
                     <span className="text-sm font-medium text-gray-500 mr-3">
-                      Lección {lesson.order}
+                      Lección {lessonOrder}
                     </span>
                     {isCompleted && (
                       <FaCheckCircle className="text-green-500 mr-2" />
@@ -158,14 +235,14 @@ export default function LearnView({ user, onBack }) {
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    {lesson.title}
+                    {lessonTitle}
                   </h3>
 
                   <p className="text-gray-600 mb-4">
-                    {lesson.description}
+                    {lessonDescription}
                   </p>
 
-                  {!isAvailable && lesson.order > 1 && (
+                  {!isAvailable && lessonOrder > 1 && (
                     <p className="text-sm text-gray-500 mb-4">
                       Completa la lección anterior para desbloquear
                     </p>
@@ -174,6 +251,7 @@ export default function LearnView({ user, onBack }) {
 
                 <div className="ml-6">
                   <button
+                    onClick={() => isAvailable && openLesson(lesson)}
                     className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 ${isCompleted
                       ? 'bg-green-100 text-green-700 hover:bg-green-200'
                       : isAvailable
@@ -206,8 +284,8 @@ export default function LearnView({ user, onBack }) {
             onClick={goToPreviousPage}
             disabled={currentPage === 1}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${currentPage === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
           >
             <FaChevronLeft className="text-sm" />
@@ -222,8 +300,8 @@ export default function LearnView({ user, onBack }) {
                   key={pageNumber}
                   onClick={() => goToPage(pageNumber)}
                   className={`w-10 h-10 rounded-lg transition-colors ${currentPage === pageNumber
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   {pageNumber}
@@ -236,8 +314,8 @@ export default function LearnView({ user, onBack }) {
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${currentPage === totalPages
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
           >
             <span>Siguiente</span>
