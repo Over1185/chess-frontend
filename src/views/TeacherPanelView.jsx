@@ -168,8 +168,8 @@ export default function TeacherPanelView({ onBack, user }) {
 
     const tabs = [
         { key: "overview", label: "Resumen", icon: FaChartBar, count: null },
-        { key: "students", label: "Estudiantes", icon: FaUserGraduate, count: students.length },
-        { key: "games", label: "Partidas", icon: FaGamepad, count: games.length },
+        { key: "students", label: "Estudiantes", icon: FaUserGraduate, count: null },
+        { key: "games", label: "Partidas", icon: FaGamepad, count: null },
         { key: "content", label: "Contenido", icon: FaChalkboardTeacher, count: null },
         { key: "settings", label: "Configuración", icon: FaUserShield, count: null }
     ];
@@ -208,8 +208,8 @@ export default function TeacherPanelView({ onBack, user }) {
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
                                 className={`flex-1 px-6 py-4 text-center transition-all duration-200 min-w-0 ${activeTab === tab.key
-                                        ? "bg-emerald-500 text-white border-b-2 border-emerald-600"
-                                        : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600"
+                                    ? "bg-emerald-500 text-white border-b-2 border-emerald-600"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600"
                                     }`}
                             >
                                 <tab.icon className="text-xl mx-auto mb-2" />
@@ -430,10 +430,10 @@ export default function TeacherPanelView({ onBack, user }) {
                                                         <td className="py-3 px-4">{game.black_player}</td>
                                                         <td className="py-3 px-4">
                                                             <span className={`px-2 py-1 rounded text-xs font-medium ${game.winner === "draw"
-                                                                    ? "bg-yellow-100 text-yellow-800"
-                                                                    : game.winner
-                                                                        ? "bg-green-100 text-green-800"
-                                                                        : "bg-gray-100 text-gray-800"
+                                                                ? "bg-yellow-100 text-yellow-800"
+                                                                : game.winner
+                                                                    ? "bg-green-100 text-green-800"
+                                                                    : "bg-gray-100 text-gray-800"
                                                                 }`}>
                                                                 {game.winner === "draw" ? "Tablas" : game.winner ? `Gana ${game.winner}` : "En curso"}
                                                             </span>
@@ -472,7 +472,7 @@ export default function TeacherPanelView({ onBack, user }) {
                                     Gestión de Contenido
                                 </h2>
 
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid md:grid-cols-2 gap-6">
                                     <div className="bg-blue-50 rounded-xl p-6">
                                         <h3 className="text-lg font-semibold text-blue-800 mb-4">
                                             <FaBook className="inline mr-2" />
@@ -508,24 +508,6 @@ export default function TeacherPanelView({ onBack, user }) {
                                             </button>
                                         </div>
                                     </div>
-
-                                    <div className="bg-green-50 rounded-xl p-6">
-                                        <h3 className="text-lg font-semibold text-green-800 mb-4">
-                                            <FaChalkboardTeacher className="inline mr-2" />
-                                            Aulas
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
-                                                Crear Nueva Aula
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
-                                                Gestionar Aulas
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
-                                                Asignar Estudiantes
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         )}
@@ -537,41 +519,20 @@ export default function TeacherPanelView({ onBack, user }) {
                                     Configuración del Sistema
                                 </h2>
 
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="bg-emerald-50 rounded-xl p-6">
-                                        <h3 className="text-lg font-semibold text-emerald-800 mb-4">
-                                            <FaUserShield className="inline mr-2" />
-                                            Administración
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                Configuración General
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                Backup de Datos
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                Logs del Sistema
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-orange-50 rounded-xl p-6">
-                                        <h3 className="text-lg font-semibold text-orange-800 mb-4">
-                                            <FaCog className="inline mr-2" />
-                                            Configuración
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
-                                                Parámetros del Sistema
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
-                                                Gestión de Usuarios
-                                            </button>
-                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
-                                                Configuración de Motor de Ajedrez
-                                            </button>
-                                        </div>
+                                <div className="text-center py-16">
+                                    <FaCog className="text-6xl text-gray-300 mx-auto mb-6" />
+                                    <h3 className="text-2xl font-semibold text-gray-600 mb-4">
+                                        Próximamente
+                                    </h3>
+                                    <p className="text-lg text-gray-500 mb-2">
+                                        La configuración del sistema es una característica
+                                    </p>
+                                    <p className="text-lg text-gray-500">
+                                        que se implementará en futuras versiones.
+                                    </p>
+                                    <div className="mt-8 inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                                        <FaUserShield className="mr-2" />
+                                        <span className="text-sm font-medium">En desarrollo</span>
                                     </div>
                                 </div>
                             </div>
