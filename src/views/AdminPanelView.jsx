@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import {
-    FaUsers,
     FaGamepad,
     FaChalkboardTeacher,
     FaChartBar,
     FaUserShield,
-    FaPlus,
     FaEdit,
     FaTrash,
     FaCrown,
@@ -16,17 +14,22 @@ import {
     FaCheckCircle,
     FaExclamationTriangle,
     FaTrophy,
-    FaCalendarDay
+    FaCalendarDay,
+    FaBook,
+    FaPuzzlePiece,
+    FaCog,
+    FaArrowLeft
 } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
 
-export default function AdminPanelView() {
+export default function AdminPanelView({ onBack, user }) {
     const [activeTab, setActiveTab] = useState("overview");
     const [loading, setLoading] = useState(false);
     const [students, setStudents] = useState([]);
     const [games, setGames] = useState([]);
     const [statistics, setStatistics] = useState(null);
     const [editingStudent, setEditingStudent] = useState(null);
+    const [editForm, setEditForm] = useState({ username: "", email: "", elo: "" });
 
     // Función para cargar estudiantes
     const loadStudents = async () => {
@@ -84,7 +87,7 @@ export default function AdminPanelView() {
 
     // Función para eliminar estudiante
     const deleteStudent = async (studentId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.")) {
+        if (!window.confirm("¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.")) {
             return;
         }
 
@@ -95,39 +98,61 @@ export default function AdminPanelView() {
 
             if (response.ok) {
                 setStudents(students.filter(s => s._id !== studentId));
-                alert("Estudiante eliminado correctamente");
+                window.alert("Estudiante eliminado correctamente");
             } else {
-                alert("Error al eliminar estudiante");
+                window.alert("Error al eliminar estudiante");
             }
         } catch (error) {
             console.error("Error eliminando estudiante:", error);
-            alert("Error al eliminar estudiante");
+            window.alert("Error al eliminar estudiante");
         }
     };
 
-    // Función para actualizar estudiante
-    const updateStudent = async (studentId, newData) => {
+    // Función para iniciar edición
+    const startEdit = (student) => {
+        setEditingStudent(student._id);
+        setEditForm({
+            username: student.username,
+            email: student.email,
+            elo: student.elo.toString()
+        });
+    };
+
+    // Función para cancelar edición
+    const cancelEdit = () => {
+        setEditingStudent(null);
+        setEditForm({ username: "", email: "", elo: "" });
+    };
+
+    // Función para guardar cambios
+    const saveEdit = async () => {
         try {
-            const response = await authFetch(`/admin/estudiante/${studentId}`, {
+            const response = await authFetch(`/admin/estudiante/${editingStudent}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(newData)
+                body: JSON.stringify({
+                    username: editForm.username,
+                    email: editForm.email,
+                    elo: parseInt(editForm.elo)
+                })
             });
 
             if (response.ok) {
-                setStudents(students.map(s =>
-                    s._id === studentId ? { ...s, ...newData } : s
+                setStudents(students.map(s => 
+                    s._id === editingStudent 
+                        ? { ...s, username: editForm.username, email: editForm.email, elo: parseInt(editForm.elo) }
+                        : s
                 ));
-                setEditingStudent(null);
-                alert("Estudiante actualizado correctamente");
+                cancelEdit();
+                window.alert("Estudiante actualizado correctamente");
             } else {
-                alert("Error al actualizar estudiante");
+                window.alert("Error al actualizar estudiante");
             }
         } catch (error) {
             console.error("Error actualizando estudiante:", error);
-            alert("Error al actualizar estudiante");
+            window.alert("Error al actualizar estudiante");
         }
     };
 
@@ -153,16 +178,26 @@ export default function AdminPanelView() {
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
             <div className="max-w-7xl mx-auto">
                 {/* Header del Panel */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full mb-4">
-                        <FaCrown className="text-3xl text-white" />
+                <div className="flex items-center justify-between mb-8">
+                    <button
+                        onClick={onBack}
+                        className="flex items-center space-x-2 text-gray-600 hover:text-emerald-600 transition-colors"
+                    >
+                        <FaArrowLeft />
+                        <span>Volver al Inicio</span>
+                    </button>
+                    <div className="text-center flex-1">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full mb-4">
+                            <FaCrown className="text-3xl text-white" />
+                        </div>
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                            Panel de Administración
+                        </h1>
+                        <p className="text-xl text-gray-600">
+                            Bienvenido, {user?.username || "Administrador"}
+                        </p>
                     </div>
-                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                        Panel del Profesor
-                    </h1>
-                    <p className="text-xl text-gray-600">
-                        Gestiona estudiantes, partidas y el contenido de la plataforma
-                    </p>
+                    <div className="w-32"></div> {/* Espaciador */}
                 </div>
 
                 {/* Tabs de navegación */}
@@ -172,10 +207,11 @@ export default function AdminPanelView() {
                             <button
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
-                                className={`flex-1 px-6 py-4 text-center transition-all duration-200 min-w-0 ${activeTab === tab.key
+                                className={`flex-1 px-6 py-4 text-center transition-all duration-200 min-w-0 ${
+                                    activeTab === tab.key
                                         ? "bg-emerald-500 text-white border-b-2 border-emerald-600"
                                         : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600"
-                                    }`}
+                                }`}
                             >
                                 <tab.icon className="text-xl mx-auto mb-2" />
                                 <span className="text-sm font-medium block truncate">{tab.label}</span>
@@ -250,319 +286,308 @@ export default function AdminPanelView() {
                                 )}
                             </div>
                         )}
-        } catch (error) {
-                            console.error("Error cargando partidas:", error);
-        } finally {
-                            setLoading(false);
-        }
-    };
 
-    // Función para cargar estadísticas generales
-    const loadStatistics = async () => {
-                            setLoading(true);
-                        try {
-            const response = await authFetch("/admin/estadisticas-generales");
-                        if (response.ok) {
-                const data = await response.json();
-                        setStatistics(data);
-            }
-        } catch (error) {
-                            console.error("Error cargando estadísticas:", error);
-        } finally {
-                            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (activeTab === "students") {
-                            loadStudents();
-        } else if (activeTab === "games") {
-                            loadGames();
-        } else if (activeTab === "stats") {
-                            loadStatistics();
-        }
-    }, [activeTab]);
-
-                        const tabs = [
-                        {key: "students", label: "Estudiantes", icon: FaUserGraduate, count: students.length },
-                        {key: "games", label: "Partidas", icon: FaGamepad, count: games.length },
-                        {key: "stats", label: "Estadísticas", icon: FaChartBar, count: null },
-                        {key: "management", label: "Gestión", icon: FaUserShield, count: null }
-                        ];
-
-                        return (
-                        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
-                            <div className="max-w-7xl mx-auto">
-                                {/* Header del Panel */}
-                                <div className="text-center mb-8">
-                                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full mb-4">
-                                        <FaCrown className="text-3xl text-white" />
-                                    </div>
-                                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                                        Panel de Administración
-                                    </h1>
-                                    <p className="text-xl text-gray-600">
-                                        Gestiona estudiantes, partidas y el contenido de la plataforma
-                                    </p>
+                        {/* Tab de Estudiantes */}
+                        {activeTab === "students" && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        Gestión de Estudiantes
+                                    </h2>
+                                    <button
+                                        onClick={() => window.alert("Función en desarrollo")}
+                                        className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center space-x-2"
+                                    >
+                                        <FaUserPlus />
+                                        <span>Crear Estudiante</span>
+                                    </button>
                                 </div>
 
-                                {/* Tabs de navegación */}
-                                <div className="bg-white rounded-2xl shadow-lg mb-8 overflow-hidden">
-                                    <div className="flex flex-wrap border-b">
-                                        {tabs.map((tab) => (
-                                            <button
-                                                key={tab.key}
-                                                onClick={() => setActiveTab(tab.key)}
-                                                className={`flex-1 min-w-0 px-6 py-4 text-center transition-all duration-200 ${activeTab === tab.key
-                                                    ? "bg-emerald-500 text-white shadow-lg"
-                                                    : "text-gray-600 hover:bg-gray-50"
-                                                    }`}
-                                            >
-                                                <tab.icon className="inline mr-2 text-lg" />
-                                                <span className="font-medium">{tab.label}</span>
-                                                {tab.count !== null && (
-                                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${activeTab === tab.key
-                                                        ? "bg-white/20 text-white"
-                                                        : "bg-gray-200 text-gray-600"
-                                                        }`}>
-                                                        {tab.count}
-                                                    </span>
-                                                )}
-                                            </button>
+                                {loading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
+                                        <span className="text-gray-600">Cargando estudiantes...</span>
+                                    </div>
+                                ) : students.length > 0 ? (
+                                    <div className="grid gap-4">
+                                        {students.map((student) => (
+                                            <div key={student._id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                                                        <FaUserGraduate className="text-white text-lg" />
+                                                    </div>
+                                                    <div>
+                                                        {editingStudent === student._id ? (
+                                                            <div className="space-y-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editForm.username}
+                                                                    onChange={(e) => setEditForm({...editForm, username: e.target.value})}
+                                                                    className="border rounded px-2 py-1 text-sm"
+                                                                    placeholder="Nombre de usuario"
+                                                                />
+                                                                <input
+                                                                    type="email"
+                                                                    value={editForm.email}
+                                                                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                                                                    className="border rounded px-2 py-1 text-sm"
+                                                                    placeholder="Email"
+                                                                />
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.elo}
+                                                                    onChange={(e) => setEditForm({...editForm, elo: e.target.value})}
+                                                                    className="border rounded px-2 py-1 text-sm w-20"
+                                                                    placeholder="ELO"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <h3 className="font-semibold text-gray-800">{student.username}</h3>
+                                                                <p className="text-sm text-gray-600">{student.email}</p>
+                                                                <p className="text-xs text-gray-500">ELO: {student.elo || 1200}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex space-x-2">
+                                                    {editingStudent === student._id ? (
+                                                        <>
+                                                            <button
+                                                                onClick={saveEdit}
+                                                                className="text-green-500 hover:text-green-700 p-2"
+                                                                title="Guardar"
+                                                            >
+                                                                <FaCheckCircle />
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelEdit}
+                                                                className="text-red-500 hover:text-red-700 p-2"
+                                                                title="Cancelar"
+                                                            >
+                                                                <FaExclamationTriangle />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => window.alert("Ver detalles en desarrollo")}
+                                                                className="text-blue-500 hover:text-blue-700 p-2"
+                                                                title="Ver detalles"
+                                                            >
+                                                                <FaEye />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => startEdit(student)}
+                                                                className="text-emerald-500 hover:text-emerald-700 p-2"
+                                                                title="Editar"
+                                                            >
+                                                                <FaEdit />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteStudent(student._id)}
+                                                                className="text-red-500 hover:text-red-700 p-2"
+                                                                title="Eliminar"
+                                                            >
+                                                                <FaTrash />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
+                                ) : (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <FaUserGraduate className="text-6xl mx-auto mb-4 opacity-30" />
+                                        <p className="text-xl">No hay estudiantes registrados</p>
+                                        <p className="text-sm">Los estudiantes aparecerán aquí cuando se registren</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                                    {/* Contenido de cada tab */}
-                                    <div className="p-6">
-                                        {/* Tab de Estudiantes */}
-                                        {activeTab === "students" && (
-                                            <div>
-                                                <div className="flex justify-between items-center mb-6">
-                                                    <h2 className="text-2xl font-bold text-gray-800">
-                                                        Gestión de Estudiantes
-                                                    </h2>
-                                                    <button
-                                                        onClick={() => alert("Función en desarrollo")}
-                                                        className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center space-x-2"
-                                                    >
-                                                        <FaUserPlus />
-                                                        <span>Crear Estudiante</span>
-                                                    </button>
-                                                </div>
+                        {/* Tab de Partidas */}
+                        {activeTab === "games" && (
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                    Partidas del Sistema
+                                </h2>
 
-                                                {loading ? (
-                                                    <div className="flex items-center justify-center py-12">
-                                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
-                                                        <span className="text-gray-600">Cargando estudiantes...</span>
-                                                    </div>
-                                                ) : students.length > 0 ? (
-                                                    <div className="grid gap-4">
-                                                        {students.map((student) => (
-                                                            <div key={student._id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                                                                <div className="flex items-center space-x-4">
-                                                                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                        <FaUserGraduate className="text-white text-lg" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h3 className="font-semibold text-gray-800">{student.username}</h3>
-                                                                        <p className="text-sm text-gray-600">{student.email}</p>
-                                                                        <p className="text-xs text-gray-500">ELO: {student.elo || 1200}</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex space-x-2">
-                                                                    <button
-                                                                        onClick={() => alert("Ver detalles en desarrollo")}
-                                                                        className="text-blue-500 hover:text-blue-700 p-2"
-                                                                        title="Ver detalles"
-                                                                    >
-                                                                        <FaEye />
-                                                                    </button>
-                                                                    <button
-                                                                        className="text-emerald-500 hover:text-emerald-700 p-2"
-                                                                        title="Editar"
-                                                                    >
-                                                                        <FaEdit />
-                                                                    </button>
-                                                                    <button
-                                                                        className="text-red-500 hover:text-red-700 p-2"
-                                                                        title="Eliminar"
-                                                                    >
-                                                                        <FaTrash />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-center py-12 text-gray-500">
-                                                        <FaUserGraduate className="text-6xl mx-auto mb-4 opacity-30" />
-                                                        <p className="text-xl">No hay estudiantes registrados</p>
-                                                        <p className="text-sm">Los estudiantes aparecerán aquí cuando se registren</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Tab de Partidas */}
-                                        {activeTab === "games" && (
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                                                    Partidas del Sistema
-                                                </h2>
-
-                                                {loading ? (
-                                                    <div className="flex items-center justify-center py-12">
-                                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
-                                                        <span className="text-gray-600">Cargando partidas...</span>
-                                                    </div>
-                                                ) : games.length > 0 ? (
-                                                    <div className="overflow-x-auto">
-                                                        <table className="w-full text-left border-collapse">
-                                                            <thead>
-                                                                <tr className="border-b-2 border-gray-200">
-                                                                    <th className="py-3 px-4 font-semibold text-gray-700">Jugadores</th>
-                                                                    <th className="py-3 px-4 font-semibold text-gray-700">Resultado</th>
-                                                                    <th className="py-3 px-4 font-semibold text-gray-700">Duración</th>
-                                                                    <th className="py-3 px-4 font-semibold text-gray-700">Fecha</th>
-                                                                    <th className="py-3 px-4 font-semibold text-gray-700">Acciones</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {games.map((game) => (
-                                                                    <tr key={game._id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                                        <td className="py-3 px-4">
-                                                                            <div className="text-sm">
-                                                                                <span className="font-medium">{game.white_player}</span>
-                                                                                <span className="text-gray-500"> vs </span>
-                                                                                <span className="font-medium">{game.black_player}</span>
-                                                                            </div>
-                                                                        </td>
-                                                                        <td className="py-3 px-4">
-                                                                            <span className={`px-2 py-1 rounded text-xs font-medium ${game.winner === 'draw' ? 'bg-yellow-100 text-yellow-800' :
-                                                                                game.winner ? 'bg-green-100 text-green-800' :
-                                                                                    'bg-gray-100 text-gray-800'
-                                                                                }`}>
-                                                                                {game.winner === 'draw' ? 'Tablas' :
-                                                                                    game.winner ? `Ganó ${game.winner}` : 'En progreso'}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                                                            {game.duration || "N/A"}
-                                                                        </td>
-                                                                        <td className="py-3 px-4 text-sm text-gray-600">
-                                                                            {game.created_at ? new Date(game.created_at).toLocaleDateString() : "N/A"}
-                                                                        </td>
-                                                                        <td className="py-3 px-4">
-                                                                            <button
-                                                                                className="text-blue-500 hover:text-blue-700 p-1"
-                                                                                title="Ver partida"
-                                                                            >
-                                                                                <FaEye />
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-center py-12 text-gray-500">
-                                                        <FaGamepad className="text-6xl mx-auto mb-4 opacity-30" />
-                                                        <p className="text-xl">No hay partidas registradas</p>
-                                                        <p className="text-sm">Las partidas aparecerán aquí cuando los estudiantes jueguen</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Tab de Estadísticas */}
-                                        {activeTab === "stats" && (
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                                                    Estadísticas Generales
-                                                </h2>
-
-                                                {loading ? (
-                                                    <div className="flex items-center justify-center py-12">
-                                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
-                                                        <span className="text-gray-600">Cargando estadísticas...</span>
-                                                    </div>
-                                                ) : statistics ? (
-                                                    <div className="grid md:grid-cols-3 gap-6">
-                                                        <div className="bg-blue-50 rounded-xl p-6 text-center">
-                                                            <FaUsers className="text-4xl text-blue-500 mx-auto mb-3" />
-                                                            <h3 className="text-lg font-semibold text-blue-800">Total Usuarios</h3>
-                                                            <p className="text-3xl font-bold text-blue-600">{statistics.total_users || 0}</p>
-                                                        </div>
-                                                        <div className="bg-green-50 rounded-xl p-6 text-center">
-                                                            <FaGamepad className="text-4xl text-green-500 mx-auto mb-3" />
-                                                            <h3 className="text-lg font-semibold text-green-800">Total Partidas</h3>
-                                                            <p className="text-3xl font-bold text-green-600">{statistics.total_games || 0}</p>
-                                                        </div>
-                                                        <div className="bg-purple-50 rounded-xl p-6 text-center">
-                                                            <FaChartBar className="text-4xl text-purple-500 mx-auto mb-3" />
-                                                            <h3 className="text-lg font-semibold text-purple-800">ELO Promedio</h3>
-                                                            <p className="text-3xl font-bold text-purple-600">{statistics.average_elo || 1200}</p>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-center py-12 text-gray-500">
-                                                        <FaChartBar className="text-6xl mx-auto mb-4 opacity-30" />
-                                                        <p className="text-xl">No hay estadísticas disponibles</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Tab de Gestión */}
-                                        {activeTab === "management" && (
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                                                    Herramientas de Gestión
-                                                </h2>
-
-                                                <div className="grid md:grid-cols-2 gap-6">
-                                                    <div className="bg-blue-50 rounded-xl p-6">
-                                                        <h3 className="text-lg font-semibold text-blue-800 mb-4">
-                                                            <FaChalkboardTeacher className="inline mr-2" />
-                                                            Gestión de Contenido
-                                                        </h3>
-                                                        <div className="space-y-3">
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                                Gestionar Lecciones
+                                {loading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
+                                        <span className="text-gray-600">Cargando partidas...</span>
+                                    </div>
+                                ) : games.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="border-b-2 border-gray-200">
+                                                    <th className="py-3 px-4 font-semibold text-gray-700">Jugador Blanco</th>
+                                                    <th className="py-3 px-4 font-semibold text-gray-700">Jugador Negro</th>
+                                                    <th className="py-3 px-4 font-semibold text-gray-700">Resultado</th>
+                                                    <th className="py-3 px-4 font-semibold text-gray-700">Fecha</th>
+                                                    <th className="py-3 px-4 font-semibold text-gray-700">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {games.map((game) => (
+                                                    <tr key={game._id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                        <td className="py-3 px-4">{game.white_player}</td>
+                                                        <td className="py-3 px-4">{game.black_player}</td>
+                                                        <td className="py-3 px-4">
+                                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                                game.winner === "draw" 
+                                                                    ? "bg-yellow-100 text-yellow-800" 
+                                                                    : game.winner 
+                                                                        ? "bg-green-100 text-green-800" 
+                                                                        : "bg-gray-100 text-gray-800"
+                                                            }`}>
+                                                                {game.winner === "draw" ? "Tablas" : game.winner ? `Gana ${game.winner}` : "En curso"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 px-4 text-sm text-gray-600">
+                                                            {game.timestamp ? new Date(game.timestamp).toLocaleDateString() : "N/A"}
+                                                        </td>
+                                                        <td className="py-3 px-4">
+                                                            <button
+                                                                onClick={() => window.alert("Ver partida en desarrollo")}
+                                                                className="text-blue-500 hover:text-blue-700 p-1"
+                                                                title="Ver partida"
+                                                            >
+                                                                <FaEye />
                                                             </button>
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                                Gestionar Puzzles
-                                                            </button>
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
-                                                                Configurar Aulas
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <FaGamepad className="text-6xl mx-auto mb-4 opacity-30" />
+                                        <p className="text-xl">No hay partidas registradas</p>
+                                        <p className="text-sm">Las partidas aparecerán aquí cuando los estudiantes jueguen</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                                                    <div className="bg-emerald-50 rounded-xl p-6">
-                                                        <h3 className="text-lg font-semibold text-emerald-800 mb-4">
-                                                            <FaUserShield className="inline mr-2" />
-                                                            Administración
-                                                        </h3>
-                                                        <div className="space-y-3">
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                                Configuración del Sistema
-                                                            </button>
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                                Backup de Datos
-                                                            </button>
-                                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
-                                                                Logs del Sistema
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
+                        {/* Tab de Contenido */}
+                        {activeTab === "content" && (
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                    Gestión de Contenido
+                                </h2>
+
+                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div className="bg-blue-50 rounded-xl p-6">
+                                        <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                                            <FaBook className="inline mr-2" />
+                                            Lecciones
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
+                                                Crear Nueva Lección
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
+                                                Gestionar Lecciones
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-blue-100 transition-colors">
+                                                Asignar Lecciones
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-purple-50 rounded-xl p-6">
+                                        <h3 className="text-lg font-semibold text-purple-800 mb-4">
+                                            <FaPuzzlePiece className="inline mr-2" />
+                                            Puzzles
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
+                                                Crear Nuevo Puzzle
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
+                                                Gestionar Puzzles
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-purple-100 transition-colors">
+                                                Categorías de Puzzles
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-green-50 rounded-xl p-6">
+                                        <h3 className="text-lg font-semibold text-green-800 mb-4">
+                                            <FaChalkboardTeacher className="inline mr-2" />
+                                            Aulas
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
+                                                Crear Nueva Aula
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
+                                                Gestionar Aulas
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-green-100 transition-colors">
+                                                Asignar Estudiantes
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        );
+                        )}
+
+                        {/* Tab de Configuración */}
+                        {activeTab === "settings" && (
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                    Configuración del Sistema
+                                </h2>
+
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="bg-emerald-50 rounded-xl p-6">
+                                        <h3 className="text-lg font-semibold text-emerald-800 mb-4">
+                                            <FaUserShield className="inline mr-2" />
+                                            Administración
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
+                                                Configuración General
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
+                                                Backup de Datos
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-emerald-100 transition-colors">
+                                                Logs del Sistema
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-orange-50 rounded-xl p-6">
+                                        <h3 className="text-lg font-semibold text-orange-800 mb-4">
+                                            <FaCog className="inline mr-2" />
+                                            Configuración
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
+                                                Parámetros del Sistema
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
+                                                Gestión de Usuarios
+                                            </button>
+                                            <button className="w-full text-left p-3 bg-white rounded-lg hover:bg-orange-100 transition-colors">
+                                                Configuración de Motor de Ajedrez
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
