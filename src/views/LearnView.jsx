@@ -21,7 +21,7 @@ export default function LearnView({ user, onBack }) {
         setLoading(true);
 
         // Cargar lecciones
-        const leccionesResponse = await authFetch("/users/lecciones");
+        const leccionesResponse = await authFetch("/lecciones");
         let lecciones = [];
 
         if (leccionesResponse.ok) {
@@ -36,13 +36,12 @@ export default function LearnView({ user, onBack }) {
 
         // Cargar progreso del usuario
         if (user) {
-          const progresoResponse = await authFetch("/users/progreso-lecciones");
+          const progresoResponse = await authFetch("/progreso-lecciones");
           if (progresoResponse.ok) {
             const progresoData = await progresoResponse.json();
             setUserProgress(progresoData.progreso_lecciones || []);
           }
         }
-
       } catch (error) {
         console.error("Error loading data:", error);
         // Usar lecciones por defecto en caso de error

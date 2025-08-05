@@ -23,7 +23,7 @@ export default function DynamicLessonView({ user }) {
                 setLoading(true);
 
                 // Cargar todas las lecciones
-                const leccionesResponse = await authFetch(`/users/lecciones`);
+                const leccionesResponse = await authFetch(`/lecciones`);
                 if (leccionesResponse.ok) {
                     const leccionesData = await leccionesResponse.json();
                     const lecciones = leccionesData.lecciones || [];
@@ -35,7 +35,7 @@ export default function DynamicLessonView({ user }) {
                         setLesson(lessonData);
 
                         // Cargar progreso del usuario
-                        const progresoResponse = await authFetch(`/users/progreso-lecciones`);
+                        const progresoResponse = await authFetch(`/progreso-lecciones`);
                         if (progresoResponse.ok) {
                             const progresoData = await progresoResponse.json();
                             const progreso = progresoData.progreso_lecciones || [];
@@ -129,7 +129,7 @@ export default function DynamicLessonView({ user }) {
 
         try {
             setCompletingLesson(true);
-            const response = await authFetch("/users/lecciones/completar", {
+            const response = await authFetch("/lecciones/completar", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
