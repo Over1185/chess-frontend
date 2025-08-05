@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaChessQueen, FaSignInAlt, FaUserPlus } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaChessQueen, FaSignInAlt, FaUserPlus, FaCrown } from "react-icons/fa";
 import { loginUser } from "../utils/auth";
 
 export default function LoginView({ onLogin, setCurrentView }) {
@@ -10,6 +10,7 @@ export default function LoginView({ onLogin, setCurrentView }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [creatingTeacher, setCreatingTeacher] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -18,6 +19,38 @@ export default function LoginView({ onLogin, setCurrentView }) {
     });
     // Limpiar error cuando el usuario empiece a escribir
     if (error) setError("");
+  };
+
+  const createTeacherAccount = async () => {
+    setCreatingTeacher(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:8000/crear-profesor-temporal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Usuario profesor creado exitosamente!\n\nEmail: ${data.credentials.email}\nContraseña: ${data.credentials.password}`);
+
+        // Auto-llenar el formulario con las credenciales del profesor
+        setFormData({
+          email: data.credentials.email,
+          password: data.credentials.password
+        });
+      } else {
+        setError("Error al crear usuario profesor");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Error de conexión al crear usuario profesor");
+    } finally {
+      setCreatingTeacher(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -129,12 +162,25 @@ export default function LoginView({ onLogin, setCurrentView }) {
           <p className="text-gray-600 mb-4 font-medium">¿No tienes una cuenta?</p>
           <button
             onClick={() => setCurrentView("register")}
-            className="w-full bg-white text-purple-600 border-2 border-purple-200 py-4 px-4 rounded-xl hover:bg-purple-50 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 font-semibold flex items-center justify-center space-x-3 shadow-md hover:shadow-lg"
-            disabled={loading}
+            className="w-full bg-white text-purple-600 border-2 border-purple-200 py-4 px-4 rounded-xl hover:bg-purple-50 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 font-semibold flex items-center justify-center space-x-3 shadow-md hover:shadow-lg mb-3"
+            disabled={loading || creatingTeacher}
           >
             <FaUserPlus className="text-lg" />
             <span className="text-lg">Crear cuenta nueva</span>
           </button>
+
+          {/* Botón temporal para crear profesor */}
+          <button
+            onClick={createTeacherAccount}
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3 px-4 rounded-xl hover:from-emerald-700 hover:to-teal-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 font-semibold flex items-center justify-center space-x-3 shadow-md hover:shadow-lg disabled:opacity-50"
+            disabled={loading || creatingTeacher}
+          >
+            <FaCrown className="text-lg" />
+            <span className="text-lg">
+              {creatingTeacher ? "Creando usuario profesor..." : "Crear usuario profesor (Temporal)"}
+            </span>
+          </button>
+          <p className="text-xs text-gray-500 mt-2">Solo para desarrollo - Crea: profesor@chess.edu</p>
         </div>
       </div>
     </div>
