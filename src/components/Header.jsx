@@ -17,7 +17,10 @@ export default function Header({ user, onLogout, setCurrentView }) {
     ];
 
     if (user?.type === "profesor") {
-      baseItems.push({ key: "classrooms", label: "Aulas", icon: FaChalkboardTeacher });
+      baseItems.push(
+        { key: "classrooms", label: "Aulas", icon: FaChalkboardTeacher },
+        { key: "teacher-panel", label: "Panel Profesor", icon: FaCrown }
+      );
     }
 
     return baseItems;

@@ -1,4 +1,13 @@
-import { FaPlay, FaUsers, FaChartBar, FaBook, FaPuzzlePiece, FaTrophy, FaSpinner } from "react-icons/fa";
+import {
+    FaPlay,
+    FaPuzzlePiece,
+    FaBook,
+    FaChartBar,
+    FaTrophy,
+    FaUsers,
+    FaSpinner,
+    FaCrown
+} from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { authFetch } from "../utils/auth";
 
@@ -56,7 +65,16 @@ export default function HomeView({ user, setCurrentView }) {
             description: "Ve tu progreso",
             icon: FaChartBar,
             color: "bg-indigo-500 hover:bg-indigo-600"
-        }
+        },
+        // Solo mostrar el panel del profesor para usuarios con rol "profesor"
+        ...(user?.type === "profesor" ? [{
+            key: "teacher-panel",
+            title: "Panel del Profesor",
+            description: "Gestiona estudiantes y contenido",
+            icon: FaCrown,
+            color: "bg-emerald-500 hover:bg-emerald-600",
+            primary: true
+        }] : [])
     ];
 
     return (
@@ -146,8 +164,8 @@ export default function HomeView({ user, setCurrentView }) {
                                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div className="flex items-center space-x-3">
                                         <div className={`w-3 h-3 rounded-full ${partida.resultado === 'Victoria' ? 'bg-green-500' :
-                                                partida.resultado === 'Derrota' ? 'bg-red-500' :
-                                                    'bg-yellow-500'
+                                            partida.resultado === 'Derrota' ? 'bg-red-500' :
+                                                'bg-yellow-500'
                                             }`}></div>
                                         <div>
                                             <p className="font-medium">vs {partida.oponente}</p>

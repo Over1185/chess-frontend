@@ -14,7 +14,7 @@ import LearnView from "./views/LearnView";
 import PlayView from "./views/PlayView";
 import StatsView from "./views/StatsView";
 import ClassroomsView from "./views/ClassroomsView";
-import AdminPanelView from "./views/AdminPanelView";
+import TeacherPanelView from "./views/TeacherPanelView";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -139,8 +139,13 @@ export default function App() {
         return <StatsView user={user} onBack={() => setCurrentView("home")} />;
       case "classrooms":
         return <ClassroomsView user={user} onBack={() => setCurrentView("home")} />;
-      case "admin":
-        return <AdminPanelView user={user} onBack={() => setCurrentView("home")} />;
+      case "teacher-panel":
+        // Solo profesores pueden acceder al panel
+        if (user?.type === "profesor") {
+          return <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />;
+        } else {
+          return <HomeView user={user} setCurrentView={setCurrentView} />;
+        }
       case "online-lobby":
         return (
           <OnlineGameLobby
