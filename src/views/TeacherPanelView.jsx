@@ -30,6 +30,9 @@ export default function TeacherPanelView({ onBack, user }) {
     const [statistics, setStatistics] = useState(null);
     const [editingStudent, setEditingStudent] = useState(null);
     const [editForm, setEditForm] = useState({ username: "", email: "", elo: "" });
+    const [viewingStudent, setViewingStudent] = useState(null);
+    const [studentDetails, setStudentDetails] = useState(null);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Función para cargar estudiantes
     const loadStudents = async () => {
@@ -87,7 +90,7 @@ export default function TeacherPanelView({ onBack, user }) {
 
     // Función para eliminar estudiante
     const deleteStudent = async (studentId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.")) {
+        if (!window.confirm("¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.")) {
             return;
         }
 
@@ -98,14 +101,76 @@ export default function TeacherPanelView({ onBack, user }) {
 
             if (response.ok) {
                 setStudents(students.filter(s => s._id !== studentId));
-                alert("Estudiante eliminado correctamente");
+                window.alert("Estudiante eliminado correctamente");
             } else {
-                alert("Error al eliminar estudiante");
+                window.alert("Error al eliminar estudiante");
             }
         } catch (error) {
             console.error("Error eliminando estudiante:", error);
-            alert("Error al eliminar estudiante");
+            window.alert("Error al eliminar estudiante");
         }
+    };
+
+    // Función para ver detalles del estudiante
+    const viewStudentDetails = async (student) => {
+        setViewingStudent(student._id);
+        setLoadingDetails(true);
+
+        try {
+            // Cargar estadísticas específicas del estudiante
+            const response = await authFetch(`/admin/estudiante/${student._id}/detalles`);
+
+            if (response.ok) {
+                const details = await response.json();
+                setStudentDetails({
+                    ...student,
+                    partidas_jugadas: details.partidas_jugadas || 0,
+                    partidas_ganadas: details.partidas_ganadas || 0,
+                    partidas_perdidas: details.partidas_perdidas || 0,
+                    partidas_empatadas: details.partidas_empatadas || 0,
+                    puzzles_resueltos: details.puzzles_resueltos || 0,
+                    lecciones_completadas: details.lecciones_completadas || 0,
+                    fecha_registro: details.fecha_registro || student.created_at,
+                    ultima_conexion: details.ultima_conexion || "No disponible"
+                });
+            } else {
+                // Si el endpoint no existe, usar datos básicos
+                setStudentDetails({
+                    ...student,
+                    partidas_jugadas: 0,
+                    partidas_ganadas: 0,
+                    partidas_perdidas: 0,
+                    partidas_empatadas: 0,
+                    puzzles_resueltos: 0,
+                    lecciones_completadas: 0,
+                    fecha_registro: student.created_at || "No disponible",
+                    ultima_conexion: "No disponible"
+                });
+            }
+        } catch (error) {
+            console.error("Error cargando detalles del estudiante:", error);
+            // Usar datos básicos en caso de error
+            setStudentDetails({
+                ...student,
+                partidas_jugadas: 0,
+                partidas_ganadas: 0,
+                partidas_perdidas: 0,
+                partidas_empatadas: 0,
+                puzzles_resueltos: 0,
+                lecciones_completadas: 0,
+                fecha_registro: student.created_at || "No disponible",
+                ultima_conexion: "No disponible"
+            });
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    // Función para cerrar detalles del estudiante
+    const closeStudentDetails = () => {
+        setViewingStudent(null);
+        setStudentDetails(null);
+        setLoadingDetails(false);
     };
 
     // Función para iniciar edición
@@ -146,13 +211,13 @@ export default function TeacherPanelView({ onBack, user }) {
                         : s
                 ));
                 cancelEdit();
-                alert("Estudiante actualizado correctamente");
+                window.alert("Estudiante actualizado correctamente");
             } else {
-                alert("Error al actualizar estudiante");
+                window.alert("Error al actualizar estudiante");
             }
         } catch (error) {
             console.error("Error actualizando estudiante:", error);
-            alert("Error al actualizar estudiante");
+            window.alert("Error al actualizar estudiante");
         }
     };
 
@@ -363,7 +428,7 @@ export default function TeacherPanelView({ onBack, user }) {
                                                     ) : (
                                                         <>
                                                             <button
-                                                                onClick={() => alert("Ver detalles en desarrollo")}
+                                                                onClick={() => viewStudentDetails(student)}
                                                                 className="text-blue-500 hover:text-blue-700 p-2"
                                                                 title="Ver detalles"
                                                             >
@@ -540,6 +605,166 @@ export default function TeacherPanelView({ onBack, user }) {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Detalles del Estudiante */}
+            {viewingStudent && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            {/* Header del Modal */}
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-2xl font-bold text-gray-800">
+                                    Detalles del Estudiante
+                                </h3>
+                                <button
+                                    onClick={closeStudentDetails}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {loadingDetails ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <FaSpinner className="text-3xl text-emerald-500 animate-spin mr-3" />
+                                    <span className="text-gray-600">Cargando detalles...</span>
+                                </div>
+                            ) : studentDetails && (
+                                <div className="space-y-6">
+                                    {/* Información Básica */}
+                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
+                                        <h4 className="text-lg font-semibold text-blue-800 mb-4">
+                                            Información Personal
+                                        </h4>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm text-gray-600">Nombre de Usuario</p>
+                                                <p className="font-medium text-gray-800">{studentDetails.username}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Email</p>
+                                                <p className="font-medium text-gray-800">{studentDetails.email}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">ELO Actual</p>
+                                                <p className="font-medium text-gray-800">{studentDetails.elo || 1200}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Fecha de Registro</p>
+                                                <p className="font-medium text-gray-800">
+                                                    {studentDetails.fecha_registro ?
+                                                        new Date(studentDetails.fecha_registro).toLocaleDateString()
+                                                        : "No disponible"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Estadísticas de Partidas */}
+                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6">
+                                        <h4 className="text-lg font-semibold text-green-800 mb-4">
+                                            Estadísticas de Partidas
+                                        </h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="text-center">
+                                                <p className="text-2xl font-bold text-green-600">
+                                                    {studentDetails.partidas_jugadas}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Jugadas</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-2xl font-bold text-blue-600">
+                                                    {studentDetails.partidas_ganadas}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Ganadas</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-2xl font-bold text-red-600">
+                                                    {studentDetails.partidas_perdidas}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Perdidas</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-2xl font-bold text-yellow-600">
+                                                    {studentDetails.partidas_empatadas}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Empates</p>
+                                            </div>
+                                        </div>
+                                        {studentDetails.partidas_jugadas > 0 && (
+                                            <div className="mt-4 text-center">
+                                                <p className="text-sm text-gray-600">
+                                                    Tasa de Victoria: {
+                                                        Math.round((studentDetails.partidas_ganadas / studentDetails.partidas_jugadas) * 100)
+                                                    }%
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Progreso de Aprendizaje */}
+                                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6">
+                                        <h4 className="text-lg font-semibold text-purple-800 mb-4">
+                                            Progreso de Aprendizaje
+                                        </h4>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="text-center p-4 bg-white rounded-lg">
+                                                <p className="text-2xl font-bold text-purple-600">
+                                                    {studentDetails.puzzles_resueltos}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Puzzles Resueltos</p>
+                                            </div>
+                                            <div className="text-center p-4 bg-white rounded-lg">
+                                                <p className="text-2xl font-bold text-pink-600">
+                                                    {studentDetails.lecciones_completadas}
+                                                </p>
+                                                <p className="text-sm text-gray-600">Lecciones Completadas</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Actividad Reciente */}
+                                    <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6">
+                                        <h4 className="text-lg font-semibold text-orange-800 mb-4">
+                                            Actividad Reciente
+                                        </h4>
+                                        <div>
+                                            <p className="text-sm text-gray-600">Última Conexión</p>
+                                            <p className="font-medium text-gray-800">
+                                                {studentDetails.ultima_conexion !== "No disponible" ?
+                                                    new Date(studentDetails.ultima_conexion).toLocaleString()
+                                                    : "No disponible"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Botones de Acción */}
+                                    <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                                        <button
+                                            onClick={() => {
+                                                closeStudentDetails();
+                                                startEdit(studentDetails);
+                                            }}
+                                            className="flex-1 bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-2"
+                                        >
+                                            <FaEdit />
+                                            <span>Editar Estudiante</span>
+                                        </button>
+                                        <button
+                                            onClick={closeStudentDetails}
+                                            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                                        >
+                                            Cerrar
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
