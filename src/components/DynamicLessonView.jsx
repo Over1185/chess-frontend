@@ -144,8 +144,11 @@ export default function DynamicLessonView({ user }) {
                 const result = await response.json();
                 console.log("Lección completada exitosamente:", result);
 
-                // Mostrar mensaje de éxito al usuario
-                alert("¡Lección completada exitosamente!");
+                // Mostrar mensaje de éxito
+                alert("¡Lección completada exitosamente! Tu progreso ha sido guardado.");
+
+                // Recargar la página para refrescar el progreso
+                window.location.reload();
             } else {
                 const errorData = await response.json();
                 console.error("Error al completar lección:", errorData);
@@ -157,9 +160,7 @@ export default function DynamicLessonView({ user }) {
         } finally {
             setCompletingLesson(false);
         }
-    };
-
-    // Verificar si todas las preguntas están respondidas
+    };    // Verificar si todas las preguntas están respondidas
     const allQuestionsAnswered = lesson?.quiz && lesson.quiz.every(
         (question, index) => {
             const questionId = question.id || index;
@@ -375,12 +376,23 @@ export default function DynamicLessonView({ user }) {
                                                 <p className="text-green-600 font-medium mb-6">
                                                     Has completado exitosamente esta lección
                                                 </p>
-                                                <button
-                                                    onClick={() => navigate("/learn")}
-                                                    className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                                >
-                                                    Continuar a la Siguiente Lección
-                                                </button>
+                                                <div className="space-x-4">
+                                                    <button
+                                                        onClick={() => {
+                                                            const nextLessonId = parseInt(lessonId) + 1;
+                                                            navigate(`/learn/${nextLessonId}`);
+                                                        }}
+                                                        className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                                    >
+                                                        Continuar a la Siguiente Lección
+                                                    </button>
+                                                    <button
+                                                        onClick={() => navigate("/learn")}
+                                                        className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                                    >
+                                                        Volver a Lecciones
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
                                             <button
