@@ -258,12 +258,89 @@ export default function TeacherPanelView({ onBack, user }) {
             const response = await authFetch("/admin/lecciones");
             if (response.ok) {
                 const data = await response.json();
-                setLessons(data.lecciones || []);
+                console.log("Datos de lecciones recibidos:", data); // Para debug
+                const adminLessons = data.lecciones || [];
+
+                // Si el endpoint de admin no tiene lecciones, usar el endpoint básico
+                if (adminLessons.length === 0) {
+                    console.log("No hay lecciones en /admin/lecciones, intentando con /lecciones");
+                    try {
+                        const fallbackResponse = await authFetch("/lecciones");
+                        if (fallbackResponse.ok) {
+                            const fallbackData = await fallbackResponse.json();
+                            console.log("Datos fallback de lecciones:", fallbackData);
+
+                            // Manejar diferentes formatos de respuesta
+                            let fallbackLessons = [];
+                            if (Array.isArray(fallbackData)) {
+                                fallbackLessons = fallbackData;
+                            } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
+                                fallbackLessons = fallbackData.lecciones;
+                            }
+
+                            console.log("Lecciones procesadas:", fallbackLessons);
+                            setLessons(fallbackLessons);
+                        } else {
+                            setLessons([]);
+                        }
+                    } catch (fallbackError) {
+                        console.error("Error en fallback de lecciones:", fallbackError);
+                        setLessons([]);
+                    }
+                } else {
+                    setLessons(adminLessons);
+                }
             } else {
                 console.error("Error al cargar lecciones:", response.status);
+                // Si falla el endpoint de admin, intentar con el endpoint básico
+                try {
+                    const fallbackResponse = await authFetch("/lecciones");
+                    if (fallbackResponse.ok) {
+                        const fallbackData = await fallbackResponse.json();
+                        console.log("Datos fallback de lecciones (error response):", fallbackData);
+
+                        // Manejar diferentes formatos de respuesta
+                        let fallbackLessons = [];
+                        if (Array.isArray(fallbackData)) {
+                            fallbackLessons = fallbackData;
+                        } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
+                            fallbackLessons = fallbackData.lecciones;
+                        }
+
+                        setLessons(fallbackLessons);
+                    } else {
+                        setLessons([]);
+                    }
+                } catch (fallbackError) {
+                    console.error("Error en fallback de lecciones:", fallbackError);
+                    setLessons([]);
+                }
             }
         } catch (error) {
             console.error("Error cargando lecciones:", error);
+            // Intentar endpoint alternativo en caso de error de conexión
+            try {
+                const fallbackResponse = await authFetch("/lecciones");
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    console.log("Datos fallback de lecciones (catch):", fallbackData);
+
+                    // Manejar diferentes formatos de respuesta
+                    let fallbackLessons = [];
+                    if (Array.isArray(fallbackData)) {
+                        fallbackLessons = fallbackData;
+                    } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
+                        fallbackLessons = fallbackData.lecciones;
+                    }
+
+                    setLessons(fallbackLessons);
+                } else {
+                    setLessons([]);
+                }
+            } catch (fallbackError) {
+                console.error("Error en fallback de lecciones:", fallbackError);
+                setLessons([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -282,13 +359,13 @@ export default function TeacherPanelView({ onBack, user }) {
                 orden: lessons.length + 1,
                 quiz: []
             });
-        } else if (mode === 'edit' && lesson) {
+        } else if ((mode === 'edit' || mode === 'view') && lesson) {
             setLessonForm({
                 titulo: lesson.titulo || '',
                 descripcion: lesson.descripcion || '',
                 contenido: lesson.contenido || '',
                 dificultad: lesson.dificultad || 'Principiante',
-                orden: lesson.orden || 1,
+                orden: lesson.orden || lessons.length + 1,
                 quiz: lesson.quiz || []
             });
         }
@@ -332,7 +409,11 @@ export default function TeacherPanelView({ onBack, user }) {
                     body: JSON.stringify(lessonData)
                 });
             } else if (lessonModalMode === 'edit') {
-                response = await authFetch(`/admin/lecciones/${editingLesson._id}`, {
+                const lessonId = editingLesson._id || editingLesson.id;
+                if (!lessonId) {
+                    throw new Error("No se encontró el ID de la lección para editar");
+                }
+                response = await authFetch(`/admin/lecciones/${lessonId}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(lessonData)
@@ -345,17 +426,23 @@ export default function TeacherPanelView({ onBack, user }) {
                 alert(lessonModalMode === 'create' ? 'Lección creada exitosamente' : 'Lección actualizada exitosamente');
             } else {
                 const errorData = await response.json();
+                console.error("Error del servidor:", errorData);
                 alert('Error al guardar la lección: ' + (errorData.detail || 'Error desconocido'));
             }
         } catch (error) {
             console.error("Error guardando lección:", error);
-            alert('Error de conexión al guardar la lección');
+            alert('Error de conexión al guardar la lección: ' + error.message);
         } finally {
             setLoading(false);
         }
     };
 
     const deleteLesson = async (lessonId) => {
+        if (!lessonId) {
+            alert('Error: No se puede eliminar la lección, ID no válido');
+            return;
+        }
+
         if (!confirm('¿Estás seguro de que quieres eliminar esta lección?')) {
             return;
         }
@@ -369,11 +456,13 @@ export default function TeacherPanelView({ onBack, user }) {
                 loadLessons(); // Recargar lecciones
                 alert('Lección eliminada exitosamente');
             } else {
-                alert('Error al eliminar la lección');
+                const errorData = await response.json();
+                console.error("Error del servidor:", errorData);
+                alert('Error al eliminar la lección: ' + (errorData.detail || 'Error desconocido'));
             }
         } catch (error) {
             console.error("Error eliminando lección:", error);
-            alert('Error de conexión al eliminar la lección');
+            alert('Error de conexión al eliminar la lección: ' + error.message);
         }
     };
 
@@ -752,28 +841,28 @@ export default function TeacherPanelView({ onBack, user }) {
                                     </div>
                                 ) : lessons.length > 0 ? (
                                     <div className="grid gap-6">
-                                        {lessons.map((lesson) => (
-                                            <div key={lesson._id || lesson.id} className="bg-white border rounded-xl p-6 shadow-sm">
+                                        {lessons.map((lesson, index) => (
+                                            <div key={lesson._id || lesson.id || index} className="bg-white border rounded-xl p-6 shadow-sm">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center space-x-3 mb-3">
                                                             <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                                Lección {lesson.orden || lesson.id}
+                                                                Lección {lesson.orden || lesson.id || index + 1}
                                                             </span>
                                                             <span className={`text-xs px-2 py-1 rounded-full ${lesson.dificultad === 'Principiante' ? 'bg-green-100 text-green-800' :
                                                                 lesson.dificultad === 'Intermedio' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    'bg-red-100 text-red-800'
+                                                                    lesson.dificultad === 'Avanzado' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                                                                 }`}>
-                                                                {lesson.dificultad}
+                                                                {lesson.dificultad || 'Sin clasificar'}
                                                             </span>
                                                         </div>
 
                                                         <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                                            {lesson.titulo}
+                                                            {lesson.titulo || 'Título no disponible'}
                                                         </h3>
 
                                                         <p className="text-gray-600 mb-4">
-                                                            {lesson.descripcion}
+                                                            {lesson.descripcion || 'Sin descripción'}
                                                         </p>
 
                                                         <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -784,6 +873,11 @@ export default function TeacherPanelView({ onBack, user }) {
                                                             <span>
                                                                 Contenido: {lesson.contenido ? lesson.contenido.length : 0} caracteres
                                                             </span>
+                                                            {lesson.fecha_creacion && (
+                                                                <span>
+                                                                    Creada: {new Date(lesson.fecha_creacion).toLocaleDateString()}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
 
