@@ -21,7 +21,8 @@ import {
     FaArrowLeft,
     FaPlus,
     FaSave,
-    FaTimes
+    FaTimes,
+    FaVideo
 } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
 
@@ -48,6 +49,7 @@ export default function TeacherPanelView({ onBack, user }) {
         contenido: '',
         dificultad: 'Principiante',
         orden: 1,
+        video_url: '',
         quiz: []
     });
     const [quizQuestion, setQuizQuestion] = useState({
@@ -259,94 +261,24 @@ export default function TeacherPanelView({ onBack, user }) {
             if (response.ok) {
                 const data = await response.json();
                 console.log("Datos de lecciones recibidos:", data); // Para debug
-                const adminLessons = data.lecciones || [];
-
-                // Si el endpoint de admin no tiene lecciones, usar el endpoint básico
-                if (adminLessons.length === 0) {
-                    console.log("No hay lecciones en /admin/lecciones, intentando con /lecciones");
-                    try {
-                        const fallbackResponse = await authFetch("/lecciones");
-                        if (fallbackResponse.ok) {
-                            const fallbackData = await fallbackResponse.json();
-                            console.log("Datos fallback de lecciones:", fallbackData);
-
-                            // Manejar diferentes formatos de respuesta
-                            let fallbackLessons = [];
-                            if (Array.isArray(fallbackData)) {
-                                fallbackLessons = fallbackData;
-                            } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
-                                fallbackLessons = fallbackData.lecciones;
-                            }
-
-                            console.log("Lecciones procesadas:", fallbackLessons);
-                            setLessons(fallbackLessons);
-                        } else {
-                            setLessons([]);
-                        }
-                    } catch (fallbackError) {
-                        console.error("Error en fallback de lecciones:", fallbackError);
-                        setLessons([]);
-                    }
-                } else {
-                    setLessons(adminLessons);
-                }
+                setLessons(data.lecciones || []);
             } else {
                 console.error("Error al cargar lecciones:", response.status);
-                // Si falla el endpoint de admin, intentar con el endpoint básico
-                try {
-                    const fallbackResponse = await authFetch("/lecciones");
-                    if (fallbackResponse.ok) {
-                        const fallbackData = await fallbackResponse.json();
-                        console.log("Datos fallback de lecciones (error response):", fallbackData);
-
-                        // Manejar diferentes formatos de respuesta
-                        let fallbackLessons = [];
-                        if (Array.isArray(fallbackData)) {
-                            fallbackLessons = fallbackData;
-                        } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
-                            fallbackLessons = fallbackData.lecciones;
-                        }
-
-                        setLessons(fallbackLessons);
-                    } else {
-                        setLessons([]);
-                    }
-                } catch (fallbackError) {
-                    console.error("Error en fallback de lecciones:", fallbackError);
-                    setLessons([]);
-                }
+                setLessons([]);
             }
         } catch (error) {
             console.error("Error cargando lecciones:", error);
-            // Intentar endpoint alternativo en caso de error de conexión
-            try {
-                const fallbackResponse = await authFetch("/lecciones");
-                if (fallbackResponse.ok) {
-                    const fallbackData = await fallbackResponse.json();
-                    console.log("Datos fallback de lecciones (catch):", fallbackData);
-
-                    // Manejar diferentes formatos de respuesta
-                    let fallbackLessons = [];
-                    if (Array.isArray(fallbackData)) {
-                        fallbackLessons = fallbackData;
-                    } else if (fallbackData.lecciones && Array.isArray(fallbackData.lecciones)) {
-                        fallbackLessons = fallbackData.lecciones;
-                    }
-
-                    setLessons(fallbackLessons);
-                } else {
-                    setLessons([]);
-                }
-            } catch (fallbackError) {
-                console.error("Error en fallback de lecciones:", fallbackError);
-                setLessons([]);
-            }
+            setLessons([]);
         } finally {
             setLoading(false);
         }
-    };
+    }; const openLessonModal = (mode, lesson = null) => {
+        // Verificar si es una lección por defecto y se intenta editar
+        if (mode === 'edit' && lesson && lesson._id && lesson._id.startsWith('default_')) {
+            alert('No puedes editar las lecciones por defecto del sistema. Puedes crear una nueva lección basada en esta.');
+            return;
+        }
 
-    const openLessonModal = (mode, lesson = null) => {
         setLessonModalMode(mode);
         setEditingLesson(lesson);
 
@@ -357,6 +289,7 @@ export default function TeacherPanelView({ onBack, user }) {
                 contenido: '',
                 dificultad: 'Principiante',
                 orden: lessons.length + 1,
+                video_url: '',
                 quiz: []
             });
         } else if ((mode === 'edit' || mode === 'view') && lesson) {
@@ -366,6 +299,7 @@ export default function TeacherPanelView({ onBack, user }) {
                 contenido: lesson.contenido || '',
                 dificultad: lesson.dificultad || 'Principiante',
                 orden: lesson.orden || lessons.length + 1,
+                video_url: lesson.video_url || '',
                 quiz: lesson.quiz || []
             });
         }
@@ -383,6 +317,7 @@ export default function TeacherPanelView({ onBack, user }) {
             contenido: '',
             dificultad: 'Principiante',
             orden: 1,
+            video_url: '',
             quiz: []
         });
         setQuizQuestion({
@@ -440,6 +375,12 @@ export default function TeacherPanelView({ onBack, user }) {
     const deleteLesson = async (lessonId) => {
         if (!lessonId) {
             alert('Error: No se puede eliminar la lección, ID no válido');
+            return;
+        }
+
+        // Verificar si es una lección por defecto
+        if (lessonId.startsWith('default_')) {
+            alert('No puedes eliminar las lecciones por defecto del sistema. Estas lecciones están incluidas para ayudar a comenzar.');
             return;
         }
 
@@ -842,7 +783,10 @@ export default function TeacherPanelView({ onBack, user }) {
                                 ) : lessons.length > 0 ? (
                                     <div className="grid gap-6">
                                         {lessons.map((lesson, index) => (
-                                            <div key={lesson._id || lesson.id || index} className="bg-white border rounded-xl p-6 shadow-sm">
+                                            <div key={lesson._id || lesson.id || index} className={`border rounded-xl p-6 shadow-sm ${lesson._id && lesson._id.startsWith('default_')
+                                                ? 'bg-blue-50 border-blue-200'
+                                                : 'bg-white border-gray-200'
+                                                }`}>
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center space-x-3 mb-3">
@@ -855,6 +799,11 @@ export default function TeacherPanelView({ onBack, user }) {
                                                                 }`}>
                                                                 {lesson.dificultad || 'Sin clasificar'}
                                                             </span>
+                                                            {lesson._id && lesson._id.startsWith('default_') && (
+                                                                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                                                    Por defecto
+                                                                </span>
+                                                            )}
                                                         </div>
 
                                                         <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -873,6 +822,12 @@ export default function TeacherPanelView({ onBack, user }) {
                                                             <span>
                                                                 Contenido: {lesson.contenido ? lesson.contenido.length : 0} caracteres
                                                             </span>
+                                                            {lesson.video_url && (
+                                                                <span className="text-blue-600">
+                                                                    <FaVideo className="inline mr-1" />
+                                                                    Video incluido
+                                                                </span>
+                                                            )}
                                                             {lesson.fecha_creacion && (
                                                                 <span>
                                                                     Creada: {new Date(lesson.fecha_creacion).toLocaleDateString()}
@@ -889,20 +844,25 @@ export default function TeacherPanelView({ onBack, user }) {
                                                         >
                                                             <FaEye />
                                                         </button>
-                                                        <button
-                                                            onClick={() => openLessonModal('edit', lesson)}
-                                                            className="text-emerald-500 hover:text-emerald-700 p-2 rounded transition-colors"
-                                                            title="Editar"
-                                                        >
-                                                            <FaEdit />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteLesson(lesson._id || lesson.id)}
-                                                            className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
-                                                            title="Eliminar"
-                                                        >
-                                                            <FaTrash />
-                                                        </button>
+                                                        {/* Solo mostrar botones de editar y eliminar para lecciones no por defecto */}
+                                                        {!(lesson._id && lesson._id.startsWith('default_')) && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openLessonModal('edit', lesson)}
+                                                                    className="text-emerald-500 hover:text-emerald-700 p-2 rounded transition-colors"
+                                                                    title="Editar"
+                                                                >
+                                                                    <FaEdit />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteLesson(lesson._id || lesson.id)}
+                                                                    className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <FaTrash />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1211,6 +1171,23 @@ export default function TeacherPanelView({ onBack, user }) {
                                         placeholder="Escribe el contenido completo de la lección aquí..."
                                         disabled={lessonModalMode === 'view'}
                                     />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        URL del Video (YouTube) - Opcional
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={lessonForm.video_url}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                        placeholder="https://www.youtube.com/watch?v=..."
+                                        disabled={lessonModalMode === 'view'}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Puedes agregar un video de YouTube para complementar la lección con contenido visual
+                                    </p>
                                 </div>
 
                                 {/* Sección de Quiz */}

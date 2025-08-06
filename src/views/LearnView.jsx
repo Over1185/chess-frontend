@@ -58,21 +58,19 @@ export default function LearnView({ user, onBack }) {
   const getDefaultLessons = () => [
     {
       id: 1,
-      titulo: "Introducción al Ajedrez",
-      descripcion: "Aprende las reglas básicas y cómo se mueven las piezas",
-      orden: 1
+      _id: "default_1",
+      titulo: "Fundamentos del Ajedrez",
+      descripcion: "Aprende las reglas básicas, el tablero y el movimiento de las piezas",
+      orden: 1,
+      dificultad: "Principiante"
     },
     {
       id: 2,
-      titulo: "Tácticas Fundamentales",
-      descripcion: "Descubre las tácticas básicas: clavada, horquilla y pincho",
-      orden: 2
-    },
-    {
-      id: 3,
-      titulo: "Finales Básicos",
-      descripcion: "Aprende técnicas esenciales para ganar en el final",
-      orden: 3
+      _id: "default_2",
+      titulo: "Tácticas Básicas de Ajedrez",
+      descripcion: "Aprende las tácticas fundamentales: clavada, horquilla, ataque doble y descubierta",
+      orden: 2,
+      dificultad: "Principiante"
     }
   ];
 

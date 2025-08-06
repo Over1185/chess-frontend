@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaPlay, FaCheckCircle, FaTimes, FaBookOpen, FaQuestionCircle, FaSpinner } from "react-icons/fa";
+import { FaArrowLeft, FaPlay, FaCheckCircle, FaTimes, FaBookOpen, FaQuestionCircle, FaSpinner, FaVideo } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
 
 export default function DynamicLessonView({ user }) {
@@ -28,54 +28,111 @@ export default function DynamicLessonView({ user }) {
                     const leccionResponse = await authFetch(`/lecciones/${lessonId}`);
                     if (leccionResponse.ok) {
                         lessonData = await leccionResponse.json();
+                        console.log("Lección encontrada por ID directo:", lessonData);
                     }
-                } catch (error) {
-                    console.log("Lección no encontrada por ID, buscando en lista completa");
+                } catch (err) {
+                    console.log("Lección no encontrada por ID directo:", err.message);
                 }
 
-                // Si no se encontró por ID, buscar en la lista completa (lecciones antiguas)
+                // Si no se encontró por ID directo, buscar en la lista completa de lecciones
                 if (!lessonData) {
+                    console.log("Buscando en lista completa de lecciones");
                     const leccionesResponse = await authFetch(`/lecciones`);
                     if (leccionesResponse.ok) {
                         const leccionesData = await leccionesResponse.json();
-                        const lecciones = leccionesData.lecciones || [];
+                        const lecciones = leccionesData.lecciones || leccionesData || [];
+                        console.log("Lecciones disponibles:", lecciones);
 
-                        // Buscar la lección específica por ID o por número de orden
-                        lessonData = lecciones.find(l =>
-                            l.id === parseInt(lessonId) ||
-                            l._id === lessonId ||
-                            l.orden === parseInt(lessonId)
-                        );
+                        // Buscar la lección específica por ID, _id, o número de orden
+                        lessonData = lecciones.find(l => {
+                            const lessonIdStr = lessonId.toString();
+                            const lessonIdNum = parseInt(lessonId);
+
+                            return (
+                                l.id === lessonIdNum ||
+                                l.id === lessonIdStr ||
+                                l._id === lessonIdStr ||
+                                l.orden === lessonIdNum ||
+                                l.order === lessonIdNum
+                            );
+                        });
+
+                        if (lessonData) {
+                            console.log("Lección encontrada en lista completa:", lessonData);
+                        }
+                    }
+                }
+
+                // Si aún no se encontró, intentar buscar en lecciones de administrador
+                if (!lessonData && user?.role === "profesor") {
+                    console.log("Buscando en lecciones de administrador");
+                    try {
+                        const adminResponse = await authFetch(`/admin/lecciones`);
+                        if (adminResponse.ok) {
+                            const adminData = await adminResponse.json();
+                            const adminLessons = adminData.lecciones || [];
+                            console.log("Lecciones admin disponibles:", adminLessons);
+
+                            lessonData = adminLessons.find(l => {
+                                const lessonIdStr = lessonId.toString();
+                                const lessonIdNum = parseInt(lessonId);
+
+                                return (
+                                    l.id === lessonIdNum ||
+                                    l.id === lessonIdStr ||
+                                    l._id === lessonIdStr ||
+                                    l.orden === lessonIdNum ||
+                                    l.order === lessonIdNum
+                                );
+                            });
+
+                            if (lessonData) {
+                                console.log("Lección encontrada en admin:", lessonData);
+                            }
+                        }
+                    } catch (adminError) {
+                        console.log("Error buscando en admin lecciones:", adminError);
                     }
                 }
 
                 if (lessonData) {
                     setLesson(lessonData);
 
-                    // Cargar progreso del usuario
-                    const progresoResponse = await authFetch(`/progreso-lecciones`);
-                    if (progresoResponse.ok) {
-                        const progresoData = await progresoResponse.json();
-                        const progreso = progresoData.progreso_lecciones || [];
+                    // Cargar progreso del usuario solo si hay usuario logueado
+                    if (user) {
+                        try {
+                            const progresoResponse = await authFetch(`/progreso-lecciones`);
+                            if (progresoResponse.ok) {
+                                const progresoData = await progresoResponse.json();
+                                const progreso = progresoData.progreso_lecciones || [];
 
-                        // Verificar si esta lección ya está completada
-                        const leccionCompletada = progreso.find(p =>
-                            p.leccion_id === lessonId ||
-                            p.leccion_id === lessonData.id?.toString() ||
-                            p.leccion_id === lessonData._id
-                        );
+                                // Verificar si esta lección ya está completada
+                                const leccionCompletada = progreso.find(p => {
+                                    const lessonIdForProgress = lessonData._id || lessonData.id?.toString() || lessonId;
+                                    return (
+                                        p.leccion_id === lessonId ||
+                                        p.leccion_id === lessonData.id?.toString() ||
+                                        p.leccion_id === lessonData._id ||
+                                        p.leccion_id === lessonIdForProgress
+                                    );
+                                });
 
-                        if (leccionCompletada && leccionCompletada.completada) {
-                            setQuizCompleted(true);
-                            setQuizResults({
-                                score: leccionCompletada.puntuacion || 100,
-                                passed: true,
-                                correctAnswers: lessonData.quiz?.length || 0,
-                                totalQuestions: lessonData.quiz?.length || 0
-                            });
+                                if (leccionCompletada && leccionCompletada.completada) {
+                                    setQuizCompleted(true);
+                                    setQuizResults({
+                                        score: leccionCompletada.puntuacion || 100,
+                                        passed: true,
+                                        correctAnswers: lessonData.quiz?.length || 0,
+                                        totalQuestions: lessonData.quiz?.length || 0
+                                    });
+                                }
+                            }
+                        } catch (progressError) {
+                            console.log("Error cargando progreso:", progressError);
                         }
                     }
                 } else {
+                    console.error("Lección no encontrada con ID:", lessonId);
                     setError("Lección no encontrada");
                 }
             } catch (err) {
@@ -89,7 +146,7 @@ export default function DynamicLessonView({ user }) {
         if (lessonId) {
             loadLesson();
         }
-    }, [lessonId]);
+    }, [lessonId, user]);
 
     // Función para manejar respuestas del quiz
     const handleQuizAnswer = (questionId, selectedOption) => {
@@ -273,21 +330,66 @@ export default function DynamicLessonView({ user }) {
                     <div className="p-6">
                         {currentSection === "theory" && (
                             <div className="space-y-6">
-                                {/* Video (si existe) */}
-                                {lesson.videoUrl && (
-                                    <div className="bg-gray-100 rounded-lg p-6 text-center">
-                                        <FaPlay className="text-4xl text-blue-600 mx-auto mb-4" />
-                                        <p className="text-gray-600 mb-4">Video de la lección</p>
-                                        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                            Reproducir Video
-                                        </button>
+                                {/* Video de YouTube (si existe) */}
+                                {(lesson.video_url || lesson.videoUrl) && (
+                                    <div className="bg-white rounded-lg border p-6">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                            <FaVideo className="text-red-500 mr-2" />
+                                            Video Explicativo
+                                        </h3>
+
+                                        {/* Extraer ID del video de YouTube */}
+                                        {(() => {
+                                            const videoUrl = lesson.video_url || lesson.videoUrl;
+                                            const getYouTubeId = (url) => {
+                                                const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+                                                const match = url.match(regex);
+                                                return match ? match[1] : null;
+                                            };
+
+                                            const videoId = getYouTubeId(videoUrl);
+
+                                            if (videoId) {
+                                                return (
+                                                    <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                                        <iframe
+                                                            src={`https://www.youtube.com/embed/${videoId}`}
+                                                            title="Video de la lección"
+                                                            className="absolute inset-0 w-full h-full"
+                                                            frameBorder="0"
+                                                            allowFullScreen
+                                                        />
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                                        <p className="text-yellow-800 mb-2">URL de video no válida</p>
+                                                        <a
+                                                            href={videoUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:underline"
+                                                        >
+                                                            Abrir enlace: {videoUrl}
+                                                        </a>
+                                                    </div>
+                                                );
+                                            }
+                                        })()}
                                     </div>
                                 )}
 
                                 {/* Contenido de teoría */}
-                                <div className="prose prose-lg max-w-none">
-                                    <div className="text-gray-800 leading-relaxed whitespace-pre-line">
-                                        {lesson.contenido || lesson.content || "Contenido de la lección no disponible."}
+                                <div className="bg-white rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                        <FaBookOpen className="text-blue-500 mr-2" />
+                                        Contenido Teórico
+                                    </h3>
+                                    <div className="prose prose-lg max-w-none">
+                                        <div className="text-gray-800 leading-relaxed whitespace-pre-line">
+                                            {lesson.contenido || lesson.content || "Contenido de la lección no disponible."}
+                                        </div>
                                     </div>
                                 </div>
 
