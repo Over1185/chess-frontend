@@ -22,7 +22,8 @@ import {
     FaPlus,
     FaSave,
     FaTimes,
-    FaVideo
+    FaVideo,
+    FaQuestionCircle
 } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
 
@@ -57,6 +58,9 @@ export default function TeacherPanelView({ onBack, user }) {
         opciones: ['', '', '', ''],
         respuesta_correcta: 0
     });
+
+    // Estado para modal de ayuda de Markdown
+    const [showMarkdownHelp, setShowMarkdownHelp] = useState(false);
 
     // Función para cargar estudiantes
     const loadStudents = async () => {
@@ -1160,9 +1164,20 @@ export default function TeacherPanelView({ onBack, user }) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Contenido de la Lección
-                                    </label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Contenido de la Lección
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMarkdownHelp(true)}
+                                            className="flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                                            title="Ayuda de formato Markdown"
+                                        >
+                                            <FaQuestionCircle className="mr-1" />
+                                            ¿Cómo formatear?
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={lessonForm.contenido}
                                         onChange={(e) => setLessonForm({ ...lessonForm, contenido: e.target.value })}
@@ -1315,6 +1330,160 @@ export default function TeacherPanelView({ onBack, user }) {
                                         <span>{loading ? 'Guardando...' : 'Guardar Lección'}</span>
                                     </button>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Ayuda de Markdown */}
+            {showMarkdownHelp && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                                    <FaQuestionCircle className="text-blue-500 mr-3" />
+                                    Guía de Formato Markdown
+                                </h3>
+                                <button
+                                    onClick={() => setShowMarkdownHelp(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <FaTimes size={24} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+                                    <p className="text-blue-800">
+                                        <strong>Markdown</strong> es un formato de texto que te permite crear contenido con estilo usando símbolos simples.
+                                        Aquí tienes una guía rápida de los elementos más útiles:
+                                    </p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {/* Títulos */}
+                                    <div className="border rounded-lg p-4">
+                                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm mr-2">Títulos</span>
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm"># Título Principal</code>
+                                                <div className="text-2xl font-bold mt-1">→ Título Principal</div>
+                                            </div>
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm">## Subtítulo</code>
+                                                <div className="text-xl font-semibold mt-1">→ Subtítulo</div>
+                                            </div>
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm">### Título Menor</code>
+                                                <div className="text-lg font-medium mt-1">→ Título Menor</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Texto con formato */}
+                                    <div className="border rounded-lg p-4">
+                                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm mr-2">Formato de Texto</span>
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm">**texto en negrita**</code>
+                                                <div className="mt-1">→ <strong>texto en negrita</strong></div>
+                                            </div>
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm">*texto en cursiva*</code>
+                                                <div className="mt-1">→ <em>texto en cursiva</em></div>
+                                            </div>
+                                            <div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm">`código`</code>
+                                                <div className="mt-1">→ <code className="bg-gray-100 px-1 rounded">código</code></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Listas */}
+                                    <div className="border rounded-lg p-4">
+                                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm mr-2">Listas</span>
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="text-sm font-medium mb-1">Lista con viñetas:</div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm block">
+                                                    - Primer elemento<br />
+                                                    - Segundo elemento<br />
+                                                    - Tercer elemento
+                                                </code>
+                                                <ul className="list-disc list-inside mt-1 ml-4">
+                                                    <li>Primer elemento</li>
+                                                    <li>Segundo elemento</li>
+                                                    <li>Tercer elemento</li>
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium mb-1">Lista numerada:</div>
+                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm block">
+                                                    1. Primer paso<br />
+                                                    2. Segundo paso<br />
+                                                    3. Tercer paso
+                                                </code>
+                                                <ol className="list-decimal list-inside mt-1 ml-4">
+                                                    <li>Primer paso</li>
+                                                    <li>Segundo paso</li>
+                                                    <li>Tercer paso</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Ejemplo completo */}
+                                    <div className="border rounded-lg p-4">
+                                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm mr-2">Ejemplo Completo</span>
+                                        </h4>
+                                        <code className="bg-gray-100 px-3 py-2 rounded text-sm block whitespace-pre-line">
+                                            {`# Fundamentos del Ajedrez
+
+## Las Piezas
+
+### El Rey
+- Es la pieza más **importante**
+- Se mueve una casilla en cualquier dirección
+- Participa en el *enroque*
+
+### La Dama
+La dama es la pieza más **poderosa** del tablero.
+
+## Objetivos
+1. Proteger tu rey
+2. Atacar el rey enemigo
+3. Controlar el centro`}
+                                        </code>
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4">
+                                    <h4 className="font-semibold text-emerald-800 mb-2">💡 Consejos:</h4>
+                                    <ul className="text-emerald-700 space-y-1">
+                                        <li>• Usa títulos para organizar el contenido de manera jerárquica</li>
+                                        <li>• Las listas ayudan a presentar información de forma clara</li>
+                                        <li>• La **negrita** resalta conceptos importantes</li>
+                                        <li>• Deja líneas en blanco entre secciones para mejor legibilidad</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end mt-6">
+                                <button
+                                    onClick={() => setShowMarkdownHelp(false)}
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Entendido
+                                </button>
                             </div>
                         </div>
                     </div>
