@@ -20,15 +20,34 @@ export default function LearnView({ user, onBack }) {
       try {
         setLoading(true);
 
-        // Cargar lecciones
-        const leccionesResponse = await authFetch("/lecciones");
+        // Cargar lecciones con fallback
         let lecciones = [];
 
+        // Primero intentar desde el endpoint principal
+        const leccionesResponse = await authFetch("/lecciones");
         if (leccionesResponse.ok) {
           const leccionesData = await leccionesResponse.json();
           lecciones = leccionesData.lecciones || [];
-        } else {
-          // Usar lecciones por defecto si no hay en el backend
+        }
+
+        // Si no hay lecciones, intentar desde el endpoint de admin
+        if (lecciones.length === 0) {
+          console.log("No se encontraron lecciones en /lecciones, intentando /admin/lecciones");
+          try {
+            const adminResponse = await authFetch("/admin/lecciones");
+            if (adminResponse.ok) {
+              const adminData = await adminResponse.json();
+              lecciones = adminData.lecciones || [];
+              console.log("Lecciones cargadas desde admin:", lecciones.length);
+            }
+          } catch (adminError) {
+            console.log("Error cargando desde admin:", adminError);
+          }
+        }
+
+        // Si aún no hay lecciones, usar las por defecto
+        if (lecciones.length === 0) {
+          console.log("Usando lecciones por defecto");
           lecciones = getDefaultLessons();
         }
 
