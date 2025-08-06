@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaPlay, FaCheckCircle, FaTimes, FaBookOpen, FaQuestionCircle, FaSpinner, FaVideo } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
+import ReactMarkdown from 'react-markdown';
 
 export default function DynamicLessonView({ user }) {
     const { lessonId } = useParams();
@@ -434,9 +435,24 @@ export default function DynamicLessonView({ user }) {
                                         Contenido Teórico
                                     </h3>
                                     <div className="prose prose-lg max-w-none">
-                                        <div className="text-gray-800 leading-relaxed whitespace-pre-line">
+                                        <ReactMarkdown
+                                            className="text-gray-800 leading-relaxed"
+                                            components={{
+                                                h1: (props) => <h1 className="text-3xl font-bold text-gray-900 mb-4 mt-6" {...props} />,
+                                                h2: (props) => <h2 className="text-2xl font-semibold text-gray-800 mb-3 mt-5" {...props} />,
+                                                h3: (props) => <h3 className="text-xl font-medium text-gray-700 mb-2 mt-4" {...props} />,
+                                                p: (props) => <p className="mb-3 text-gray-700 leading-relaxed" {...props} />,
+                                                strong: (props) => <strong className="font-semibold text-gray-900" {...props} />,
+                                                ul: (props) => <ul className="list-disc list-inside mb-4 ml-4" {...props} />,
+                                                ol: (props) => <ol className="list-decimal list-inside mb-4 ml-4" {...props} />,
+                                                li: (props) => <li className="mb-1 text-gray-700" {...props} />,
+                                                code: (props) => <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono" {...props} />,
+                                                pre: (props) => <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4" {...props} />,
+                                                blockquote: (props) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-600 mb-4" {...props} />
+                                            }}
+                                        >
                                             {lesson.contenido || lesson.content || "Contenido de la lección no disponible."}
-                                        </div>
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
 

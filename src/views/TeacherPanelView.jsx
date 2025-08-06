@@ -272,12 +272,6 @@ export default function TeacherPanelView({ onBack, user }) {
             setLoading(false);
         }
     }; const openLessonModal = (mode, lesson = null) => {
-        // Verificar si es una lección por defecto y se intenta editar
-        if (mode === 'edit' && lesson && lesson._id && lesson._id.startsWith('default_')) {
-            alert('No puedes editar las lecciones por defecto del sistema. Puedes crear una nueva lección basada en esta.');
-            return;
-        }
-
         setLessonModalMode(mode);
         setEditingLesson(lesson);
 
@@ -347,6 +341,8 @@ export default function TeacherPanelView({ onBack, user }) {
                 if (!lessonId) {
                     throw new Error("No se encontró el ID de la lección para editar");
                 }
+
+                // El backend se encarga de manejar lecciones por defecto vs normales
                 response = await authFetch(`/admin/lecciones/${lessonId}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -379,8 +375,8 @@ export default function TeacherPanelView({ onBack, user }) {
 
         // Mensaje diferente para lecciones por defecto
         let confirmMessage = '¿Estás seguro de que quieres eliminar esta lección?';
-        if (lessonId.startsWith('default_')) {
-            confirmMessage = '¿Estás seguro de que quieres ocultar esta lección por defecto? Podrás restaurarla más tarde si es necesario.';
+        if (lessonId.toString().startsWith('default_')) {
+            confirmMessage = '¿Estás seguro de que quieres eliminar esta lección por defecto de tu vista? Podrás restaurarla más tarde si es necesario.';
         }
 
         if (!confirm(confirmMessage)) {
@@ -388,19 +384,24 @@ export default function TeacherPanelView({ onBack, user }) {
         }
 
         try {
+            // Para lecciones por defecto, simplemente las ocultamos de la vista del profesor
+            if (lessonId.toString().startsWith('default_')) {
+                // Filtrar la lección de la lista local sin hacer petición al servidor
+                setLessons(prevLessons => prevLessons.filter(lesson =>
+                    (lesson._id || lesson.id) !== lessonId
+                ));
+                alert('Lección por defecto eliminada de tu vista');
+                return;
+            }
+
+            // Para lecciones del profesor, eliminar normalmente
             const response = await authFetch(`/admin/lecciones/${lessonId}`, {
                 method: "DELETE"
             });
 
             if (response.ok) {
                 loadLessons(); // Recargar lecciones
-
-                // Mensaje diferente según el tipo de lección
-                if (lessonId.startsWith('default_')) {
-                    alert('Lección por defecto ocultada exitosamente');
-                } else {
-                    alert('Lección eliminada exitosamente');
-                }
+                alert('Lección eliminada exitosamente');
             } else {
                 const errorData = await response.json();
                 console.error("Error del servidor:", errorData);
@@ -788,10 +789,7 @@ export default function TeacherPanelView({ onBack, user }) {
                                 ) : lessons.length > 0 ? (
                                     <div className="grid gap-6">
                                         {lessons.map((lesson, index) => (
-                                            <div key={lesson._id || lesson.id || index} className={`border rounded-xl p-6 shadow-sm ${lesson._id && lesson._id.startsWith('default_')
-                                                ? 'bg-blue-50 border-blue-200'
-                                                : 'bg-white border-gray-200'
-                                                }`}>
+                                            <div key={lesson._id || lesson.id || index} className="border rounded-xl p-6 shadow-sm bg-white border-gray-200 hover:shadow-md transition-shadow">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center space-x-3 mb-3">
@@ -849,25 +847,21 @@ export default function TeacherPanelView({ onBack, user }) {
                                                         >
                                                             <FaEye />
                                                         </button>
-                                                        {/* Solo mostrar botones de editar y eliminar para lecciones no por defecto */}
-                                                        {!(lesson._id && lesson._id.startsWith('default_')) && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => openLessonModal('edit', lesson)}
-                                                                    className="text-emerald-500 hover:text-emerald-700 p-2 rounded transition-colors"
-                                                                    title="Editar"
-                                                                >
-                                                                    <FaEdit />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => deleteLesson(lesson._id || lesson.id)}
-                                                                    className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
-                                                                    title="Eliminar"
-                                                                >
-                                                                    <FaTrash />
-                                                                </button>
-                                                            </>
-                                                        )}
+                                                        {/* Mostrar botones de editar y eliminar para todas las lecciones */}
+                                                        <button
+                                                            onClick={() => openLessonModal('edit', lesson)}
+                                                            className="text-emerald-500 hover:text-emerald-700 p-2 rounded transition-colors"
+                                                            title="Editar"
+                                                        >
+                                                            <FaEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteLesson(lesson._id || lesson.id)}
+                                                            className="text-red-500 hover:text-red-700 p-2 rounded transition-colors"
+                                                            title="Eliminar"
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
