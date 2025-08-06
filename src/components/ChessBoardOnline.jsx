@@ -36,14 +36,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     const playerColor = gameData?.player_color || 'white';
     const isPlayerTurn = currentTurn === playerColor;
 
-    console.log('Game state debug:', {
-        playerColor,
-        currentTurn,
-        isPlayerTurn,
-        gameStatus,
-        gamePosition: gamePosition.substring(0, 20) + '...'
-    });
-
     // WebSocket connection
     const { sendMessage, lastMessage, connectionStatus } = useWebSocket(
         WEBSOCKET_URL,
@@ -139,7 +131,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Procesar mensajes del WebSocket
     useEffect(() => {
         if (lastMessage) {
-            console.log('Mensaje recibido en ChessBoardOnline:', lastMessage);
 
             switch (lastMessage.type) {
                 case 'move':
@@ -158,7 +149,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     setTimeout(() => setErrorMessage(''), 3000);
                     break;
                 default:
-                    console.log('Mensaje no manejado:', lastMessage);
             }
         }
     }, [lastMessage, handleOpponentMove, updateGameState, onGameEnd]);
@@ -241,7 +231,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     fen: gameCopy.fen()
                 };
 
-                console.log('Sending move:', moveData);
                 sendMessage(moveData);
                 setMoveHistory(prev => [...prev, moveData]);
                 calculateCapturedPieces(gameCopy);
@@ -270,13 +259,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
     // Función para manejar clicks en cuadrados
     const onSquareClick = useCallback(({ square, piece }) => {
-        console.log('=== onSquareClick INICIO ===');
-        console.log('Square clicked:', square, 'Piece:', piece, 'IsPlayerTurn:', isPlayerTurn);
-        console.log('gameStatus:', gameStatus, 'currentTurn:', currentTurn, 'playerColor:', playerColor);
 
         // No permitir clicks si no es el turno del jugador o el juego no está activo
         if (!isPlayerTurn || gameStatus !== 'active') {
-            console.log('❌ Cannot click - isPlayerTurn:', isPlayerTurn, 'gameStatus:', gameStatus);
             return;
         }
 
@@ -329,14 +314,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     }, [moveFrom, isPlayerTurn, gameStatus, playerColor, currentTurn, getMoveOptions, makeMove]);
 
     const onPieceDrop = useCallback((sourceSquare, targetSquare) => {
-        console.log('=== onPieceDrop INICIO ===');
-        console.log('onPieceDrop called:', { sourceSquare, targetSquare, isPlayerTurn, playerColor });
-        console.log('gameStatus:', gameStatus);
-        console.log('currentTurn:', currentTurn);
 
         // Solo permitir mover si es el turno del jugador
         if (!isPlayerTurn) {
-            console.log('❌ Not player turn - isPlayerTurn:', isPlayerTurn);
             setErrorMessage('No es tu turno');
             setTimeout(() => setErrorMessage(''), 2000);
             return false;
@@ -344,25 +324,20 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
         // Verificar estado del juego
         if (gameStatus !== 'active') {
-            console.log('❌ Game not active - gameStatus:', gameStatus);
             return false;
         }
 
         // Verificar que el movimiento es del color correcto
         const piece = chessGameRef.current.get(sourceSquare);
-        console.log('Piece at source square:', piece);
 
         if (piece && piece.color !== (playerColor === 'white' ? 'w' : 'b')) {
-            console.log('❌ Wrong piece color - piece.color:', piece.color, 'expected:', playerColor === 'white' ? 'w' : 'b');
             setErrorMessage('No puedes mover piezas del oponente');
             setTimeout(() => setErrorMessage(''), 2000);
             return false;
         }
 
-        console.log('✅ All checks passed, calling makeMove');
         // Hacer el movimiento usando la función unificada
         const success = makeMove(sourceSquare, targetSquare);
-        console.log('makeMove result:', success);
         return success;
     }, [isPlayerTurn, playerColor, gameStatus, currentTurn, makeMove]);
 
@@ -403,17 +378,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         setTimeout(() => setErrorMessage(''), 2000);
     };
 
-    // Validaciones de datos necesarios
-    console.log('Validation check:', {
-        hasGameData: !!gameData,
-        hasUser: !!user,
-        hasSessionToken: !!gameData?.session_token,
-        playerColor: gameData?.player_color,
-        opponentName: gameData?.opponent_name
-    });
-
     if (!gameData) {
-        console.log('No gameData provided, showing loading screen');
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -425,7 +390,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     }
 
     if (!user) {
-        console.log('No user provided, showing error');
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -442,7 +406,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     }
 
     if (!gameData.session_token) {
-        console.log('No session token provided, showing error');
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -458,7 +421,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         );
     }
 
-    console.log('All validations passed, rendering chessboard');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
@@ -545,13 +507,11 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                                         return {};
                                     }}
                                     onPieceDragBegin={(piece, sourceSquare) => {
-                                        console.log(`Drag started: ${piece} from ${sourceSquare}`);
                                         // Mostrar opciones de movimiento cuando se empieza a arrastrar
                                         getMoveOptions(sourceSquare);
                                         setMoveFrom(sourceSquare);
                                     }}
                                     onPieceDragEnd={() => {
-                                        console.log('Drag ended');
                                         // Limpiar opciones cuando se termina de arrastrar
                                         setOptionSquares({});
                                         setMoveFrom('');

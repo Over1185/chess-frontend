@@ -32,22 +32,19 @@ export default function LearnView({ user, onBack }) {
 
         // Si no hay lecciones, intentar desde el endpoint de admin
         if (lecciones.length === 0) {
-          console.log("No se encontraron lecciones en /lecciones, intentando /admin/lecciones");
           try {
             const adminResponse = await authFetch("/admin/lecciones");
             if (adminResponse.ok) {
               const adminData = await adminResponse.json();
               lecciones = adminData.lecciones || [];
-              console.log("Lecciones cargadas desde admin:", lecciones.length);
             }
           } catch (adminError) {
-            console.log("Error cargando desde admin:", adminError);
+            console.error("Error cargando desde admin:", adminError);
           }
         }
 
         // Si aún no hay lecciones, usar las por defecto
         if (lecciones.length === 0) {
-          console.log("Usando lecciones por defecto");
           lecciones = getDefaultLessons();
         }
 
@@ -95,33 +92,24 @@ export default function LearnView({ user, onBack }) {
 
   // Función para determinar si una lección está disponible
   const isLessonAvailable = (lesson) => {
-    console.log("=== VERIFICANDO DISPONIBILIDAD ===");
-    console.log("Lección:", lesson.titulo || lesson.title);
-    console.log("ID de lección:", lesson._id || lesson.id);
 
     // Encontrar la lección anterior basándose en la lista ordenada
     const currentLessonIndex = allLessons.findIndex(l =>
       (l._id === lesson._id) || (l.id === lesson.id)
     );
 
-    console.log("Índice de lección actual:", currentLessonIndex);
 
     if (currentLessonIndex === 0) {
-      console.log("Primera lección en la lista - siempre disponible");
       return true;
     }
 
     if (currentLessonIndex === -1) {
-      console.log("Lección no encontrada en la lista");
       return false;
     }
 
     // Obtener la lección anterior basándose en el índice
     const previousLesson = allLessons[currentLessonIndex - 1];
     const previousLessonId = previousLesson._id || previousLesson.id;
-
-    console.log("Lección anterior:", previousLesson.titulo || previousLesson.title);
-    console.log("ID de lección anterior:", previousLessonId);
 
     // Verificar si la lección anterior está completada
     const isPreviousCompleted = userProgress.some(progress => {
@@ -130,12 +118,9 @@ export default function LearnView({ user, onBack }) {
         progress.leccion_id === previousLesson.id?.toString() ||
         parseInt(progress.leccion_id) === previousLesson.id) &&
         progress.completada;
-
-      console.log(`Comparando progreso: ${progress.leccion_id} vs ${previousLessonId} (${previousLesson.id}) && ${progress.completada} = ${match}`);
       return match;
     });
 
-    console.log("Lección anterior completada:", isPreviousCompleted);
     return isPreviousCompleted;
   };  // Función para determinar si una lección está completada
   const isLessonCompleted = (lessonId) => {
@@ -188,10 +173,6 @@ export default function LearnView({ user, onBack }) {
   const openLesson = (lesson) => {
     // Priorizar el campo 'id' que ahora debería estar presente en todas las lecciones
     const lessonId = lesson.id || lesson._id;
-    console.log("=== ABRIENDO LECCIÓN ===");
-    console.log("Datos completos de la lección:", lesson);
-    console.log("ID seleccionado:", lessonId, "Tipo:", typeof lessonId);
-    console.log("lesson.id:", lesson.id, "lesson._id:", lesson._id);
 
     if (!lessonId) {
       console.error("No se pudo determinar el ID de la lección");

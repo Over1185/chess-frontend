@@ -90,9 +90,6 @@ export default function App() {
 
   // Funciones para manejar las partidas online
   const handleGameStart = (gameStartData) => {
-    console.log('=== App.jsx handleGameStart ===');
-    console.log('Datos recibidos gameStartData:', gameStartData);
-    console.log('your_color:', gameStartData.your_color);
 
     // Formatear los datos para el componente ChessBoardOnline
     const formattedGameData = {
@@ -103,9 +100,6 @@ export default function App() {
       moves: [],
       session_token: user?.token // Agregar token para WebSocket
     };
-
-    console.log('Datos formateados para ChessBoardOnline:', formattedGameData);
-    console.log('player_color final:', formattedGameData.player_color);
 
     setGameData(formattedGameData);
     // Navegar a la partida será manejado por React Router

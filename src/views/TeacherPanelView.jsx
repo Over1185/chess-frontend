@@ -260,7 +260,6 @@ export default function TeacherPanelView({ onBack, user }) {
             const response = await authFetch("/admin/lecciones");
             if (response.ok) {
                 const data = await response.json();
-                console.log("Datos de lecciones recibidos:", data); // Para debug
                 setLessons(data.lecciones || []);
             } else {
                 console.error("Error al cargar lecciones:", response.status);

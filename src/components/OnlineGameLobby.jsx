@@ -44,9 +44,6 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                 break;
 
             case 'game_start':
-                console.log('=== OnlineGameLobby recibió game_start ===');
-                console.log('lastMessage:', lastMessage);
-
                 setMatchFound(true);
                 setIsSearching(false);
                 setGameInfo({
@@ -56,9 +53,6 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                     yourColor: lastMessage.your_color,
                     isPrivate: lastMessage.is_private || false
                 });
-
-                // Llamar inmediatamente al callback - sin timeout
-                console.log('Llamando onGameStart con:', lastMessage);
                 onGameStart(lastMessage);
                 break;
 

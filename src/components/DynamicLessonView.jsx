@@ -21,32 +21,26 @@ export default function DynamicLessonView({ user }) {
         const loadLesson = async () => {
             try {
                 setLoading(true);
-                console.log("=== CARGANDO LECCIÓN ===");
-                console.log("ID de lección recibido:", lessonId, "Tipo:", typeof lessonId);
 
                 // Primero intentar cargar la lección directamente por ID
                 let lessonData = null;
                 try {
-                    console.log("Intentando buscar lección directamente:", `/lecciones/${lessonId}`);
                     const leccionResponse = await authFetch(`/lecciones/${lessonId}`);
                     if (leccionResponse.ok) {
                         lessonData = await leccionResponse.json();
-                        console.log("Lección encontrada por ID directo:", lessonData);
                     } else {
-                        console.log("Respuesta del servidor:", leccionResponse.status, leccionResponse.statusText);
+                        console.warn("Respuesta del servidor:", leccionResponse.status, leccionResponse.statusText);
                     }
                 } catch (err) {
-                    console.log("Error buscando lección por ID directo:", err.message);
+                    console.error("Error buscando lección por ID directo:", err.message);
                 }
 
                 // Si no se encontró por ID directo, buscar en la lista completa de lecciones
                 if (!lessonData) {
-                    console.log("Buscando en lista completa de lecciones");
                     const leccionesResponse = await authFetch(`/lecciones`);
                     if (leccionesResponse.ok) {
                         const leccionesData = await leccionesResponse.json();
                         const lecciones = leccionesData.lecciones || leccionesData || [];
-                        console.log("Lecciones disponibles:", lecciones);
 
                         // Buscar la lección específica por ID, _id, o número de orden
                         lessonData = lecciones.find(l => {
@@ -81,13 +75,11 @@ export default function DynamicLessonView({ user }) {
 
                 // Si aún no se encontró, intentar buscar en lecciones de administrador
                 if (!lessonData) {
-                    console.log("Buscando en lecciones de administrador");
                     try {
                         const adminResponse = await authFetch(`/admin/lecciones`);
                         if (adminResponse.ok) {
                             const adminData = await adminResponse.json();
                             const adminLessons = adminData.lecciones || [];
-                            console.log("Lecciones admin disponibles:", adminLessons);
 
                             lessonData = adminLessons.find(l => {
                                 const lessonIdStr = lessonId.toString();
@@ -186,13 +178,6 @@ export default function DynamicLessonView({ user }) {
     // Función para enviar el quiz
     const submitQuiz = async () => {
         if (!lesson.quiz || lesson.quiz.length === 0) return;
-
-        console.log("=== EVALUANDO QUIZ ===");
-        console.log("Tipo de lección:", lesson.creador || "desconocido");
-        console.log("ID de lección:", lesson._id || lesson.id);
-        console.log("Datos completos del quiz:", JSON.stringify(lesson.quiz, null, 2));
-        console.log("Respuestas del usuario:", quizAnswers);
-
         let correctAnswers = 0;
         const results = {};
 
@@ -204,41 +189,25 @@ export default function DynamicLessonView({ user }) {
                 ? question.respuesta_correcta
                 : question.correctAnswer;
 
-            console.log(`\n=== Pregunta ${index + 1} ===`);
-            console.log("  Estructura completa de la pregunta:", JSON.stringify(question, null, 2));
-            console.log("  QuestionId usado:", questionId, "(tipo:", typeof questionId, ")");
-            console.log("  Pregunta:", question.pregunta || question.question);
-            console.log("  Opciones:", question.opciones || question.options);
-            console.log("  Respuesta del usuario:", userAnswer, "(tipo:", typeof userAnswer, ")");
-            console.log("  Respuesta correcta:", correctAnswer, "(tipo:", typeof correctAnswer, ")");
-
             // Hacer comparación robusta manejando tanto números como strings
             let isCorrect = false;
 
             // Comparación directa primero
             if (userAnswer === correctAnswer) {
                 isCorrect = true;
-                console.log("  ✓ Coincidencia directa");
             } else {
-                console.log("  ✗ No hay coincidencia directa");
 
                 // Intentar comparación numérica
                 const userAnswerNum = parseInt(userAnswer);
                 const correctAnswerNum = parseInt(correctAnswer);
 
-                console.log("  Conversión a número - Usuario:", userAnswerNum, "Correcta:", correctAnswerNum);
-
                 if (!isNaN(userAnswerNum) && !isNaN(correctAnswerNum) && userAnswerNum === correctAnswerNum) {
                     isCorrect = true;
-                    console.log("  ✓ Coincidencia numérica");
                 } else {
-                    console.log("  ✗ No hay coincidencia numérica");
 
                     // Intentar comparación como strings
                     const userAnswerStr = String(userAnswer);
                     const correctAnswerStr = String(correctAnswer);
-
-                    console.log("  Conversión a string - Usuario:", userAnswerStr, "Correcta:", correctAnswerStr);
 
                     if (userAnswerStr === correctAnswerStr) {
                         isCorrect = true;
@@ -248,9 +217,6 @@ export default function DynamicLessonView({ user }) {
                     }
                 }
             }
-
-            console.log("  Resultado final:", isCorrect ? "CORRECTO" : "INCORRECTO");
-
             results[questionId] = {
                 userAnswer,
                 correctAnswer,
@@ -259,12 +225,6 @@ export default function DynamicLessonView({ user }) {
 
             if (isCorrect) correctAnswers++;
         });
-
-        console.log("\n=== RESUMEN DE EVALUACIÓN ===");
-        console.log("Respuestas correctas:", correctAnswers);
-        console.log("Total de preguntas:", lesson.quiz.length);
-        console.log("Resultados detallados:", results);
-
         const score = (correctAnswers / lesson.quiz.length) * 100;
         const passed = score >= 70;
 
