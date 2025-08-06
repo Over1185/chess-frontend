@@ -378,13 +378,13 @@ export default function TeacherPanelView({ onBack, user }) {
             return;
         }
 
-        // Verificar si es una lección por defecto
+        // Mensaje diferente para lecciones por defecto
+        let confirmMessage = '¿Estás seguro de que quieres eliminar esta lección?';
         if (lessonId.startsWith('default_')) {
-            alert('No puedes eliminar las lecciones por defecto del sistema. Estas lecciones están incluidas para ayudar a comenzar.');
-            return;
+            confirmMessage = '¿Estás seguro de que quieres ocultar esta lección por defecto? Podrás restaurarla más tarde si es necesario.';
         }
 
-        if (!confirm('¿Estás seguro de que quieres eliminar esta lección?')) {
+        if (!confirm(confirmMessage)) {
             return;
         }
 
@@ -395,7 +395,13 @@ export default function TeacherPanelView({ onBack, user }) {
 
             if (response.ok) {
                 loadLessons(); // Recargar lecciones
-                alert('Lección eliminada exitosamente');
+
+                // Mensaje diferente según el tipo de lección
+                if (lessonId.startsWith('default_')) {
+                    alert('Lección por defecto ocultada exitosamente');
+                } else {
+                    alert('Lección eliminada exitosamente');
+                }
             } else {
                 const errorData = await response.json();
                 console.error("Error del servidor:", errorData);
