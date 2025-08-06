@@ -95,28 +95,63 @@ export default function LearnView({ user, onBack }) {
 
   // Función para determinar si una lección está disponible
   const isLessonAvailable = (lesson) => {
-    const lessonOrder = lesson.orden || lesson.order || lesson.id;
+    console.log("=== VERIFICANDO DISPONIBILIDAD ===");
+    console.log("Lección:", lesson.titulo || lesson.title);
+    console.log("ID de lección:", lesson._id || lesson.id);
 
-    if (lessonOrder === 1) return true; // Primera lección siempre disponible
-
-    // Verificar si la lección anterior está completada
-    const previousLessonId = lessonOrder - 1;
-    const previousLessonCompleted = userProgress.some(
-      progress => {
-        const progressLessonId = parseInt(progress.leccion_id);
-        return progressLessonId === previousLessonId && progress.completada;
-      }
+    // Encontrar la lección anterior basándose en la lista ordenada
+    const currentLessonIndex = allLessons.findIndex(l =>
+      (l._id === lesson._id) || (l.id === lesson.id)
     );
 
-    return previousLessonCompleted;
-  };
+    console.log("Índice de lección actual:", currentLessonIndex);
 
-  // Función para determinar si una lección está completada
+    if (currentLessonIndex === 0) {
+      console.log("Primera lección en la lista - siempre disponible");
+      return true;
+    }
+
+    if (currentLessonIndex === -1) {
+      console.log("Lección no encontrada en la lista");
+      return false;
+    }
+
+    // Obtener la lección anterior basándose en el índice
+    const previousLesson = allLessons[currentLessonIndex - 1];
+    const previousLessonId = previousLesson._id || previousLesson.id;
+
+    console.log("Lección anterior:", previousLesson.titulo || previousLesson.title);
+    console.log("ID de lección anterior:", previousLessonId);
+
+    // Verificar si la lección anterior está completada
+    const isPreviousCompleted = userProgress.some(progress => {
+      // Comparar tanto por ObjectId como por ID numérico
+      const match = (progress.leccion_id === previousLessonId ||
+        progress.leccion_id === previousLesson.id?.toString() ||
+        parseInt(progress.leccion_id) === previousLesson.id) &&
+        progress.completada;
+
+      console.log(`Comparando progreso: ${progress.leccion_id} vs ${previousLessonId} (${previousLesson.id}) && ${progress.completada} = ${match}`);
+      return match;
+    });
+
+    console.log("Lección anterior completada:", isPreviousCompleted);
+    return isPreviousCompleted;
+  };  // Función para determinar si una lección está completada
   const isLessonCompleted = (lessonId) => {
     return userProgress.some(
       progress => {
-        const progressLessonId = parseInt(progress.leccion_id);
-        return progressLessonId === lessonId && progress.completada;
+        // Convertir tanto el lessonId como el progress.leccion_id a string para comparar
+        const progressLessonId = progress.leccion_id?.toString();
+        const currentLessonId = lessonId?.toString();
+
+        // También intentar comparación numérica si es posible
+        const progressLessonNum = parseInt(progress.leccion_id);
+        const currentLessonNum = parseInt(lessonId);
+
+        return (progressLessonId === currentLessonId ||
+          (!isNaN(progressLessonNum) && !isNaN(currentLessonNum) && progressLessonNum === currentLessonNum))
+          && progress.completada;
       }
     );
   };
@@ -151,7 +186,20 @@ export default function LearnView({ user, onBack }) {
 
   // Función para abrir lección usando React Router
   const openLesson = (lesson) => {
-    navigate(`/learn/${lesson.id}`);
+    // Priorizar el campo 'id' que ahora debería estar presente en todas las lecciones
+    const lessonId = lesson.id || lesson._id;
+    console.log("=== ABRIENDO LECCIÓN ===");
+    console.log("Datos completos de la lección:", lesson);
+    console.log("ID seleccionado:", lessonId, "Tipo:", typeof lessonId);
+    console.log("lesson.id:", lesson.id, "lesson._id:", lesson._id);
+
+    if (!lessonId) {
+      console.error("No se pudo determinar el ID de la lección");
+      alert("Error: No se pudo abrir la lección. ID no válido.");
+      return;
+    }
+
+    navigate(`/learn/${lessonId}`);
   };
 
   // Mostrar estado de carga
@@ -220,7 +268,9 @@ export default function LearnView({ user, onBack }) {
         </div>
 
         {currentLessons.map((lesson) => {
-          const isCompleted = isLessonCompleted(lesson.id);
+          // Priorizar el campo 'id' que ahora debería estar presente en todas las lecciones
+          const lessonId = lesson.id || lesson._id;
+          const isCompleted = isLessonCompleted(lessonId);
           const isAvailable = isLessonAvailable(lesson);
           const lessonTitle = lesson.titulo || lesson.title;
           const lessonDescription = lesson.descripcion || lesson.description;
@@ -228,7 +278,7 @@ export default function LearnView({ user, onBack }) {
 
           return (
             <div
-              key={lesson.id}
+              key={lessonId}
               className={`bg-white rounded-lg shadow-lg p-6 border-l-4 transition-all duration-200 ${isCompleted
                 ? 'border-green-500 bg-green-50'
                 : isAvailable

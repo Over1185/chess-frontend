@@ -21,17 +21,22 @@ export default function DynamicLessonView({ user }) {
         const loadLesson = async () => {
             try {
                 setLoading(true);
+                console.log("=== CARGANDO LECCIÓN ===");
+                console.log("ID de lección recibido:", lessonId, "Tipo:", typeof lessonId);
 
                 // Primero intentar cargar la lección directamente por ID
                 let lessonData = null;
                 try {
+                    console.log("Intentando buscar lección directamente:", `/lecciones/${lessonId}`);
                     const leccionResponse = await authFetch(`/lecciones/${lessonId}`);
                     if (leccionResponse.ok) {
                         lessonData = await leccionResponse.json();
                         console.log("Lección encontrada por ID directo:", lessonData);
+                    } else {
+                        console.log("Respuesta del servidor:", leccionResponse.status, leccionResponse.statusText);
                     }
                 } catch (err) {
-                    console.log("Lección no encontrada por ID directo:", err.message);
+                    console.log("Error buscando lección por ID directo:", err.message);
                 }
 
                 // Si no se encontró por ID directo, buscar en la lista completa de lecciones
@@ -48,13 +53,24 @@ export default function DynamicLessonView({ user }) {
                             const lessonIdStr = lessonId.toString();
                             const lessonIdNum = parseInt(lessonId);
 
-                            return (
-                                l.id === lessonIdNum ||
-                                l.id === lessonIdStr ||
-                                l._id === lessonIdStr ||
-                                l.orden === lessonIdNum ||
-                                l.order === lessonIdNum
-                            );
+                            // Intentar múltiples formas de coincidir
+                            const matches = [
+                                l.id === lessonIdNum,
+                                l.id === lessonIdStr,
+                                l._id === lessonIdStr,
+                                l._id === lessonId, // Comparación directa de ObjectId
+                                l.orden === lessonIdNum,
+                                l.order === lessonIdNum,
+                                // También intentar coincidencias parciales de ObjectId
+                                l._id && l._id.toString() === lessonIdStr,
+                                l._id && l._id.includes && l._id.includes(lessonIdStr)
+                            ];
+
+                            const isMatch = matches.some(match => match);
+                            if (isMatch) {
+                                console.log("Lección encontrada:", l, "Criterio de búsqueda:", lessonId);
+                            }
+                            return isMatch;
                         });
 
                         if (lessonData) {
@@ -64,7 +80,7 @@ export default function DynamicLessonView({ user }) {
                 }
 
                 // Si aún no se encontró, intentar buscar en lecciones de administrador
-                if (!lessonData && user?.role === "profesor") {
+                if (!lessonData) {
                     console.log("Buscando en lecciones de administrador");
                     try {
                         const adminResponse = await authFetch(`/admin/lecciones`);
@@ -77,13 +93,24 @@ export default function DynamicLessonView({ user }) {
                                 const lessonIdStr = lessonId.toString();
                                 const lessonIdNum = parseInt(lessonId);
 
-                                return (
-                                    l.id === lessonIdNum ||
-                                    l.id === lessonIdStr ||
-                                    l._id === lessonIdStr ||
-                                    l.orden === lessonIdNum ||
-                                    l.order === lessonIdNum
-                                );
+                                // Intentar múltiples formas de coincidir
+                                const matches = [
+                                    l.id === lessonIdNum,
+                                    l.id === lessonIdStr,
+                                    l._id === lessonIdStr,
+                                    l._id === lessonId, // Comparación directa de ObjectId
+                                    l.orden === lessonIdNum,
+                                    l.order === lessonIdNum,
+                                    // También intentar coincidencias de ObjectId
+                                    l._id && l._id.toString() === lessonIdStr,
+                                    l._id && l._id.includes && l._id.includes(lessonIdStr)
+                                ];
+
+                                const isMatch = matches.some(match => match);
+                                if (isMatch) {
+                                    console.log("Lección encontrada en admin:", l, "Criterio de búsqueda:", lessonId);
+                                }
+                                return isMatch;
                             });
 
                             if (lessonData) {
@@ -160,14 +187,69 @@ export default function DynamicLessonView({ user }) {
     const submitQuiz = async () => {
         if (!lesson.quiz || lesson.quiz.length === 0) return;
 
+        console.log("=== EVALUANDO QUIZ ===");
+        console.log("Tipo de lección:", lesson.creador || "desconocido");
+        console.log("ID de lección:", lesson._id || lesson.id);
+        console.log("Datos completos del quiz:", JSON.stringify(lesson.quiz, null, 2));
+        console.log("Respuestas del usuario:", quizAnswers);
+
         let correctAnswers = 0;
         const results = {};
 
         lesson.quiz.forEach((question, index) => {
             const questionId = question.id || index;
             const userAnswer = quizAnswers[questionId];
-            const correctAnswer = question.respuesta_correcta || question.correctAnswer;
-            const isCorrect = userAnswer === correctAnswer;
+            // Arreglar el problema con respuesta_correcta = 0
+            const correctAnswer = question.respuesta_correcta !== undefined
+                ? question.respuesta_correcta
+                : question.correctAnswer;
+
+            console.log(`\n=== Pregunta ${index + 1} ===`);
+            console.log("  Estructura completa de la pregunta:", JSON.stringify(question, null, 2));
+            console.log("  QuestionId usado:", questionId, "(tipo:", typeof questionId, ")");
+            console.log("  Pregunta:", question.pregunta || question.question);
+            console.log("  Opciones:", question.opciones || question.options);
+            console.log("  Respuesta del usuario:", userAnswer, "(tipo:", typeof userAnswer, ")");
+            console.log("  Respuesta correcta:", correctAnswer, "(tipo:", typeof correctAnswer, ")");
+
+            // Hacer comparación robusta manejando tanto números como strings
+            let isCorrect = false;
+
+            // Comparación directa primero
+            if (userAnswer === correctAnswer) {
+                isCorrect = true;
+                console.log("  ✓ Coincidencia directa");
+            } else {
+                console.log("  ✗ No hay coincidencia directa");
+
+                // Intentar comparación numérica
+                const userAnswerNum = parseInt(userAnswer);
+                const correctAnswerNum = parseInt(correctAnswer);
+
+                console.log("  Conversión a número - Usuario:", userAnswerNum, "Correcta:", correctAnswerNum);
+
+                if (!isNaN(userAnswerNum) && !isNaN(correctAnswerNum) && userAnswerNum === correctAnswerNum) {
+                    isCorrect = true;
+                    console.log("  ✓ Coincidencia numérica");
+                } else {
+                    console.log("  ✗ No hay coincidencia numérica");
+
+                    // Intentar comparación como strings
+                    const userAnswerStr = String(userAnswer);
+                    const correctAnswerStr = String(correctAnswer);
+
+                    console.log("  Conversión a string - Usuario:", userAnswerStr, "Correcta:", correctAnswerStr);
+
+                    if (userAnswerStr === correctAnswerStr) {
+                        isCorrect = true;
+                        console.log("  ✓ Coincidencia como string");
+                    } else {
+                        console.log("  ✗ No hay coincidencia como string");
+                    }
+                }
+            }
+
+            console.log("  Resultado final:", isCorrect ? "CORRECTO" : "INCORRECTO");
 
             results[questionId] = {
                 userAnswer,
@@ -177,6 +259,11 @@ export default function DynamicLessonView({ user }) {
 
             if (isCorrect) correctAnswers++;
         });
+
+        console.log("\n=== RESUMEN DE EVALUACIÓN ===");
+        console.log("Respuestas correctas:", correctAnswers);
+        console.log("Total de preguntas:", lesson.quiz.length);
+        console.log("Resultados detallados:", results);
 
         const score = (correctAnswers / lesson.quiz.length) * 100;
         const passed = score >= 70;
