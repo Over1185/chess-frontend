@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaChessQueen, FaSignInAlt, FaUserPlus } from "react-icons/fa";
 import { loginUser } from "../utils/auth";
 
-export default function LoginView({ onLogin, setCurrentView }) {
+export default function LoginView({ onLogin }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -126,7 +128,7 @@ export default function LoginView({ onLogin, setCurrentView }) {
         <div className="text-center mt-8 pt-6 border-t border-gray-200">
           <p className="text-gray-600 mb-4 font-medium">¿No tienes una cuenta?</p>
           <button
-            onClick={() => setCurrentView("register")}
+            onClick={() => navigate("/register")}
             className="w-full bg-white text-purple-600 border-2 border-purple-200 py-4 px-4 rounded-xl hover:bg-purple-50 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 font-semibold flex items-center justify-center space-x-3 shadow-md hover:shadow-lg"
             disabled={loading}
           >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { getUserFromToken, isAuthenticated, checkSessionValidity, clearAuthData } from "./utils/auth";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
@@ -20,9 +20,10 @@ import StatsView from "./views/StatsView";
 import ClassroomsView from "./views/ClassroomsView";
 import TeacherPanelView from "./views/TeacherPanelView";
 
-export default function App() {
+// Componente interno que tiene acceso a useNavigate
+function AppContent() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [currentView, setCurrentView] = useState("login");
   const [isLoading, setIsLoading] = useState(true);
   const [gameData, setGameData] = useState(null);
 
@@ -41,14 +42,7 @@ export default function App() {
             token: localStorage.getItem("token"),
             lecciones_vistas: userData.lecciones_vistas || [] // Agregar progreso de lecciones
           });
-          setCurrentView("home");
-        } else {
-          // Token inválido, ir al login
-          setCurrentView("login");
         }
-      } else {
-        // No autenticado, ir al login
-        setCurrentView("login");
       }
       setIsLoading(false);
     };
@@ -60,7 +54,6 @@ export default function App() {
       if (!checkSessionValidity()) {
         // Sesión expirada
         setUser(null);
-        setCurrentView("login");
       }
     }, 30000);
 
@@ -73,13 +66,13 @@ export default function App() {
       ...userData,
       lecciones_vistas: userData.lecciones_vistas || []
     });
-    setCurrentView("home");
+    navigate("/");
   }
 
   function logout() {
     setUser(null);
-    setCurrentView("login");
     clearAuthData();
+    navigate("/login");
   }
 
 
@@ -120,71 +113,75 @@ export default function App() {
   // Si no hay usuario autenticado, mostrar solo login y register
   if (!user) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/register" element={<RegisterView setCurrentView={setCurrentView} />} />
-          <Route path="*" element={<LoginView onLogin={login} setCurrentView={setCurrentView} />} />
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/register" element={<RegisterView />} />
+        <Route path="*" element={<LoginView onLogin={login} />} />
+      </Routes>
     );
   }
 
   // Usuario autenticado - mostrar aplicación completa con rutas
   return (
     <WebSocketProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-          <Header user={user} onLogout={logout} />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
-              <Route path="/home" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
-              <Route path="/puzzles" element={<PuzzlesView user={user} onBack={() => setCurrentView("home")} />} />
-              <Route path="/learn" element={<LearnView user={user} onBack={() => setCurrentView("home")} />} />
-              <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
-              <Route path="/play" element={<PlayView user={user} setCurrentView={setCurrentView} />} />
-              <Route path="/ai-play" element={<AIPlayView user={user} />} />
-              <Route path="/stats" element={<StatsView user={user} onBack={() => setCurrentView("home")} />} />
-              <Route path="/classrooms" element={<ClassroomsView user={user} onBack={() => setCurrentView("home")} />} />
-              <Route
-                path="/teacher-panel"
-                element={
-                  user?.type === "profesor"
-                    ? <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />
-                    : <Navigate to="/home" replace />
-                }
-              />
-              <Route
-                path="/online-lobby"
-                element={
-                  <OnlineGameLobby
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <Header user={user} onLogout={logout} />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<HomeView user={user} />} />
+            <Route path="/home" element={<HomeView user={user} />} />
+            <Route path="/puzzles" element={<PuzzlesView user={user} />} />
+            <Route path="/learn" element={<LearnView user={user} />} />
+            <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
+            <Route path="/play" element={<PlayView user={user} />} />
+            <Route path="/ai-play" element={<AIPlayView user={user} />} />
+            <Route path="/stats" element={<StatsView user={user} />} />
+            <Route path="/classrooms" element={<ClassroomsView user={user} />} />
+            <Route
+              path="/teacher-panel"
+              element={
+                user?.type === "profesor"
+                  ? <TeacherPanelView user={user} />
+                  : <Navigate to="/home" replace />
+              }
+            />
+            <Route
+              path="/online-lobby"
+              element={
+                <OnlineGameLobby
+                  user={user}
+                  onGameStart={handleGameStart}
+                />
+              }
+            />
+            <Route
+              path="/chess-game"
+              element={
+                gameData ? (
+                  <ChessBoardOnline
+                    gameData={gameData}
                     user={user}
-                    onGameStart={handleGameStart}
-                    onBack={() => setCurrentView("play")}
+                    onGameEnd={handleGameEnd}
                   />
-                }
-              />
-              <Route
-                path="/chess-game"
-                element={
-                  gameData ? (
-                    <ChessBoardOnline
-                      gameData={gameData}
-                      user={user}
-                      onGameEnd={handleGameEnd}
-                    />
-                  ) : (
-                    <Navigate to="/play" replace />
-                  )
-                }
-              />
-              {/* Ruta por defecto */}
-              <Route path="*" element={<Navigate to="/home" replace />} />
-            </Routes>
-          </main>
-          <Footer user={user} />
-        </div>
-      </Router>
+                ) : (
+                  <Navigate to="/play" replace />
+                )
+              }
+            />
+            {/* Ruta por defecto */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </main>
+        <Footer user={user} />
+      </div>
     </WebSocketProvider>
+  );
+}
+
+// Componente principal que envuelve AppContent en Router
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }

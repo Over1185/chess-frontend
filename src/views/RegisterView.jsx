@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaChessQueen, FaUser, FaUserPlus, FaSignInAlt } from "react-icons/fa";
 import { registerUser } from "../utils/auth";
 
-export default function RegisterView({ setCurrentView }) {
+export default function RegisterView() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -62,7 +64,7 @@ export default function RegisterView({ setCurrentView }) {
     if (result.success) {
       setSuccess(result.message);
       setTimeout(() => {
-        setCurrentView("login");
+        navigate("/");
       }, 2000);
     } else {
       setError(result.error);
@@ -222,7 +224,7 @@ export default function RegisterView({ setCurrentView }) {
         <div className="text-center mt-8 pt-6 border-t border-gray-200">
           <p className="text-gray-600 mb-4 font-medium">¿Ya tienes una cuenta?</p>
           <button
-            onClick={() => setCurrentView("login")}
+            onClick={() => navigate("/")}
             className="w-full bg-white text-emerald-600 border-2 border-emerald-200 py-4 px-4 rounded-xl hover:bg-emerald-50 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 font-semibold flex items-center justify-center space-x-3 shadow-md hover:shadow-lg"
             disabled={loading}
           >

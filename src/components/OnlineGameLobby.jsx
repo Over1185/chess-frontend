@@ -6,7 +6,7 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 const WEBSOCKET_URL = 'ws://localhost:8000/ws';
 
-export default function OnlineGameLobby({ user, onGameStart, onBack }) {
+export default function OnlineGameLobby({ user, onGameStart }) {
     const navigate = useNavigate();
     const [isSearching, setIsSearching] = useState(false);
     const [matchFound, setMatchFound] = useState(false);
@@ -128,7 +128,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
         }
         // NO desconectar el WebSocket al cambiar de vista
         // disconnect();
-        onBack();
+        navigate("/play");
     };
 
     const formatTime = (seconds) => {
