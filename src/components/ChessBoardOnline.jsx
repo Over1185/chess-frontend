@@ -75,6 +75,14 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     const [drawOfferFrom, setDrawOfferFrom] = useState('');
     const [gameResult, setGameResult] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+
+    // Estados para promoción de peones
+    const [promotionMove, setPromotionMove] = useState(null);
+    const [showPromotionModal, setShowPromotionModal] = useState(false);
+
+    // Estados para estilos de casillas (jaque, etc.)
+    const [customSquareStyles, setCustomSquareStyles] = useState({});
+
     const hasConnectedRef = useRef(false);
 
     // Determinar el color del jugador y orientación del tablero
@@ -136,6 +144,66 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         setCapturedPieces(captured);
     }, []);
 
+    // Función para actualizar estilos de casillas (jaque, etc.)
+    const updateSquareStyles = useCallback((gameInstance) => {
+        const newStyles = { ...optionSquares }; // Mantener los estilos de movimientos válidos
+
+        // Detectar jaque (pero no jaque mate)
+        if (gameInstance.inCheck() && !gameInstance.isCheckmate()) {
+            // Encontrar la posición del rey en jaque
+            const board = gameInstance.board();
+            const turn = gameInstance.turn();
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = board[row][col];
+                    if (piece && piece.type === 'k' && piece.color === turn) {
+                        const square = String.fromCharCode(97 + col) + (8 - row);
+                        newStyles[square] = {
+                            ...newStyles[square],
+                            backgroundColor: 'rgba(255, 0, 0, 0.5)', // Rojo para jaque
+                            borderRadius: '50%'
+                        };
+                        break;
+                    }
+                }
+            }
+        }
+
+        setCustomSquareStyles(newStyles);
+    }, [optionSquares]);
+
+    // Función para detectar y manejar promoción
+    const detectPromotion = useCallback((from, to) => {
+        // Verificar si es una promoción potencial
+        const piece = chessGameRef.current.get(from);
+        if (!piece || piece.type !== 'p') return false;
+
+        const toRank = parseInt(to[1]);
+        const isWhitePawn = piece.color === 'w' && toRank === 8;
+        const isBlackPawn = piece.color === 'b' && toRank === 1;
+
+        if (isWhitePawn || isBlackPawn) {
+            // Verificar si el movimiento es válido
+            const moves = chessGameRef.current.moves({
+                square: from,
+                verbose: true
+            });
+
+            const validPromotion = moves.some(move =>
+                move.to === to && move.promotion
+            );
+
+            if (validPromotion) {
+                setPromotionMove({ from, to });
+                setShowPromotionModal(true);
+                return true;
+            }
+        }
+
+        return false;
+    }, []);
+
     // Función para obtener movimientos válidos de una casilla
     const getMoveOptions = useCallback((square) => {
         const moves = chessGameRef.current.moves({
@@ -195,6 +263,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                 setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
                 calculateCapturedPieces(gameCopy);
 
+                // Actualizar estilos de casillas (jaque, etc.)
+                updateSquareStyles(gameCopy);
+
                 // Enviar movimiento al servidor
                 const moveData = {
                     type: 'move',
@@ -246,7 +317,21 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             setTimeout(() => setErrorMessage(''), 2000);
         }
         return false;
-    }, [isPlayerTurn, gameStatus, gameData, sendMessage, calculateCapturedPieces]);
+    }, [isPlayerTurn, gameStatus, gameData, sendMessage, calculateCapturedPieces, updateSquareStyles]);
+
+    // Función para manejar selección de pieza de promoción
+    const handlePromotionSelect = useCallback((selectedPiece) => {
+        if (!promotionMove) return;
+
+        // Hacer el movimiento con la promoción seleccionada
+        const success = makeMove(promotionMove.from, promotionMove.to, selectedPiece);
+
+        // Limpiar estado de promoción
+        setPromotionMove(null);
+        setShowPromotionModal(false);
+
+        return success;
+    }, [promotionMove, makeMove]);
 
     // Manejar movimiento del oponente
     const handleOpponentMove = useCallback((moveData) => {
@@ -442,6 +527,13 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         };
     }, [gameStatus, gameData?.id, playerColor, sendMessage]);
 
+    // Actualizar estilos cuando la posición cambie
+    useEffect(() => {
+        if (gamePosition && gameStatus === 'active') {
+            updateSquareStyles(chessGameRef.current);
+        }
+    }, [gamePosition, gameStatus, updateSquareStyles]);
+
     // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
         console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
@@ -495,9 +587,14 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             }
 
             // Hacer el movimiento
+            // Verificar si es una promoción
+            if (detectPromotion(moveFrom, square)) {
+                return; // Detener aquí y esperar selección de promoción
+            }
+
             makeMove(moveFrom, square, foundMove.promotion);
         }
-    }, [moveFrom, isPlayerTurn, gameStatus, playerColor, getMoveOptions, makeMove]);
+    }, [moveFrom, isPlayerTurn, gameStatus, playerColor, getMoveOptions, makeMove, detectPromotion]);
 
     // Manejar drop de pieza (drag and drop)
     const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }) => {
@@ -518,9 +615,14 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             return false;
         }
 
-        // Hacer el movimiento
+        // Verificar si es una promoción
+        if (detectPromotion(sourceSquare, targetSquare)) {
+            return true; // Detener aquí y esperar selección de promoción
+        }
+
+        // Hacer el movimiento normal
         return makeMove(sourceSquare, targetSquare);
-    }, [isPlayerTurn, gameStatus, playerColor, makeMove]);
+    }, [isPlayerTurn, gameStatus, playerColor, makeMove, detectPromotion]);
 
     // Manejar right-click en casillas
     const onSquareRightClick = useCallback(({ square }) => {
@@ -594,7 +696,8 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         boardOrientation,
         squareStyles: {
             ...optionSquares,
-            ...rightClickedSquares
+            ...rightClickedSquares,
+            ...customSquareStyles
         },
         allowDragging: isPlayerTurn && gameStatus === 'active',
         id: `chessboard-${gameData?.id || 'default'}`,
@@ -917,6 +1020,32 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                 confirmText="Aceptar Tablas"
                 cancelText="Rechazar"
             />
+
+            {/* Modal de promoción de peón */}
+            {showPromotionModal && promotionMove && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6">
+                        <h2 className="text-xl font-bold mb-4 text-center">
+                            Selecciona pieza de promoción
+                        </h2>
+                        <div className="grid grid-cols-4 gap-4">
+                            {['q', 'r', 'n', 'b'].map(piece => {
+                                const isWhite = playerColor === 'white';
+                                const pieceKey = isWhite ? piece.toUpperCase() : piece.toLowerCase();
+                                return (
+                                    <button
+                                        key={piece}
+                                        onClick={() => handlePromotionSelect(piece)}
+                                        className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                                    >
+                                        <CapturedPiece piece={pieceKey} size={48} />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
