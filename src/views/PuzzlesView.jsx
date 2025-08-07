@@ -1,159 +1,111 @@
-import { useState } from "react";
-import { FaPuzzlePiece, FaCheckCircle, FaTimesCircle, FaLightbulb } from "react-icons/fa";
+import { FaPuzzlePiece, FaTools, FaCog, FaArrowLeft } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function PuzzlesView() {
-    const [currentPuzzle, setCurrentPuzzle] = useState(null);
-    const [userSolution, setUserSolution] = useState("");
-    const [feedback, setFeedback] = useState(null);
-
-    const puzzleTypes = {
-        easy: { name: "Fácil", color: "bg-green-500", description: "Puzzles básicos para principiantes" },
-        medium: { name: "Medio", color: "bg-yellow-500", description: "Puzzles intermedios" },
-        hard: { name: "Difícil", color: "bg-red-500", description: "Puzzles avanzados" }
-    };
-
-    const loadPuzzle = (difficulty) => {
-        // Aquí se cargaría un puzzle real del backend
-        setCurrentPuzzle({
-            id: "sample",
-            difficulty,
-            fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            solution: "e4",
-            theme: "Apertura"
-        });
-        setFeedback(null);
-        setUserSolution("");
-    };
-
-    const submitSolution = () => {
-        if (!currentPuzzle || !userSolution.trim()) return;
-
-        const isCorrect = userSolution.toLowerCase().trim() === currentPuzzle.solution.toLowerCase();
-
-        setFeedback({
-            correct: isCorrect,
-            message: isCorrect
-                ? "¡Correcto! Excelente trabajo."
-                : `Incorrecto. La respuesta era: ${currentPuzzle.solution}`
-        });
-    };
+    const navigate = useNavigate();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-4">
-            <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                        <FaPuzzlePiece className="inline mr-3 text-purple-600" />
-                        Puzzles de Ajedrez
-                    </h1>
-                    <p className="text-xl text-gray-600">
-                        Mejora tu táctica resolviendo problemas de ajedrez
-                    </p>
-                </div>
+            <div className="max-w-4xl mx-auto">
+                {/* Botón de regreso */}
+                <button
+                    onClick={() => navigate("/")}
+                    className="mb-6 flex items-center space-x-2 text-purple-600 hover:text-purple-800 transition-colors"
+                >
+                    <FaArrowLeft className="text-lg" />
+                    <span className="font-medium">Volver al inicio</span>
+                </button>
 
-                {!currentPuzzle ? (
-                    // Selección de dificultad
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {Object.entries(puzzleTypes).map(([difficulty, info]) => (
-                            <div key={difficulty} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all">
-                                <div className="text-center">
-                                    <div className={`w-16 h-16 ${info.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                                        <FaPuzzlePiece className="text-2xl text-white" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">{info.name}</h3>
-                                    <p className="text-gray-600 mb-6">{info.description}</p>
-                                    <button
-                                        onClick={() => loadPuzzle(difficulty)}
-                                        className={`w-full ${info.color} hover:opacity-90 text-white py-3 px-6 rounded-lg font-semibold transition-all`}
-                                    >
-                                        Comenzar
-                                    </button>
-                                </div>
+                {/* Contenido principal de construcción */}
+                <div className="text-center">
+                    <div className="bg-white rounded-3xl shadow-2xl p-12 mb-8">
+                        {/* Iconos animados */}
+                        <div className="flex justify-center items-center space-x-4 mb-8">
+                            <FaPuzzlePiece className="text-6xl text-purple-600" />
+                            <div className="relative">
+                                <FaTools className="text-5xl text-orange-500 animate-bounce" />
+                                <FaCog className="text-2xl text-gray-400 absolute -top-2 -right-2 animate-spin" />
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    // Vista del puzzle
-                    <div className="grid lg:grid-cols-2 gap-8">
-                        {/* Tablero del puzzle */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold text-gray-800">
-                                    Puzzle {puzzleTypes[currentPuzzle.difficulty].name}
-                                </h3>
-                                <span className={`px-3 py-1 ${puzzleTypes[currentPuzzle.difficulty].color} text-white rounded-full text-sm`}>
-                                    {currentPuzzle.theme}
-                                </span>
-                            </div>
+                        </div>
 
-                            {/* Aquí iría el componente del tablero de ajedrez */}
-                            <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                                <p className="text-gray-500 text-center">
-                                    Tablero de ajedrez<br />
-                                    <span className="text-sm">FEN: {currentPuzzle.fen}</span>
+                        {/* Título principal */}
+                        <h1 className="text-5xl font-bold text-gray-800 mb-6">
+                            Puzzles de Ajedrez
+                        </h1>
+                        
+                        {/* Estado de construcción */}
+                        <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8 mb-8">
+                            <h2 className="text-3xl font-bold text-purple-700 mb-4">
+                                🚧 En Construcción 🚧
+                            </h2>
+                            <p className="text-xl text-gray-700 mb-4">
+                                Estamos perfeccionando los últimos detalles para ofrecerte la mejor experiencia de puzzles de ajedrez.
+                            </p>
+                            <div className="bg-white rounded-lg p-4 shadow-inner">
+                                <p className="text-lg text-gray-600">
+                                    <strong>¿Qué estamos preparando?</strong>
                                 </p>
+                                <ul className="text-left mt-3 space-y-2 text-gray-600">
+                                    <li className="flex items-center">
+                                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                        Puzzles tácticos de diferentes niveles de dificultad
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                        Sistema de puntuación y progreso personalizado
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                        Análisis detallado de cada solución
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                        Categorías temáticas (mates, tácticas, finales)
+                                    </li>
+                                </ul>
                             </div>
                         </div>
 
-                        {/* Panel de solución */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">
-                                <FaLightbulb className="inline mr-2 text-yellow-500" />
-                                Tu Solución
+                        {/* Mensaje motivacional */}
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl p-6 mb-8">
+                            <h3 className="text-2xl font-bold mb-3">
+                                ¡Pronto estará disponible!
                             </h3>
+                            <p className="text-lg opacity-90">
+                                Mientras tanto, puedes seguir mejorando tu juego con las partidas contra la IA o explorar las lecciones disponibles.
+                            </p>
+                        </div>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Ingresa tu movimiento (notación algebraica):
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={userSolution}
-                                        onChange={(e) => setUserSolution(e.target.value)}
-                                        placeholder="ej: Nxd5, Qh5+, O-O"
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={submitSolution}
-                                    disabled={!userSolution.trim()}
-                                    className="w-full bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
-                                >
-                                    Verificar Solución
-                                </button>
-
-                                {feedback && (
-                                    <div className={`p-4 rounded-lg flex items-center space-x-3 ${feedback.correct ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
-                                        }`}>
-                                        {feedback.correct ? (
-                                            <FaCheckCircle className="text-2xl text-green-500" />
-                                        ) : (
-                                            <FaTimesCircle className="text-2xl text-red-500" />
-                                        )}
-                                        <p className="font-medium">{feedback.message}</p>
-                                    </div>
-                                )}
-
-                                <div className="flex space-x-3">
-                                    <button
-                                        onClick={() => setCurrentPuzzle(null)}
-                                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                                    >
-                                        Volver
-                                    </button>
-                                    <button
-                                        onClick={() => loadPuzzle(currentPuzzle.difficulty)}
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                                    >
-                                        Siguiente
-                                    </button>
-                                </div>
-                            </div>
+                        {/* Botones de acción */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <button
+                                onClick={() => navigate("/ai-play")}
+                                className="bg-blue-500 hover:bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+                            >
+                                <FaPuzzlePiece className="text-xl" />
+                                <span>Jugar contra IA</span>
+                            </button>
+                            <button
+                                onClick={() => navigate("/learn")}
+                                className="bg-green-500 hover:bg-green-600 text-white py-4 px-6 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+                            >
+                                <FaCog className="text-xl" />
+                                <span>Ver Lecciones</span>
+                            </button>
                         </div>
                     </div>
-                )}
+
+                    {/* Progreso visual */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <h4 className="text-xl font-bold text-gray-800 mb-4">
+                            Progreso de Desarrollo
+                        </h4>
+                        <div className="bg-gray-200 rounded-full h-4 mb-2">
+                            <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full animate-pulse" style={{ width: '85%' }}></div>
+                        </div>
+                        <p className="text-gray-600">85% completado</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
