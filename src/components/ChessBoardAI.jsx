@@ -272,7 +272,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     if (onGameEnd) onGameEnd(result);
                 } else {
                     // Hacer que Stockfish juegue después de un pequeño delay
-                    setTimeout(() => makeStockfishMove(gameCopy), 500);
+                    setTimeout(() => makeStockfishMove(), 500);
                 }
 
                 return true;
@@ -300,17 +300,17 @@ export default function ChessBoardAI({ user, onGameEnd }) {
     }, [promotionMove, makeMove]);
 
     // Función para hacer que Stockfish juegue
-    const makeStockfishMove = useCallback(async (gameInstance) => {
+    const makeStockfishMove = useCallback(async () => {
         if (gameStatus !== 'active') return;
 
         setIsThinking(true);
 
         try {
-            // Obtener el historial de movimientos en formato SAN
-            const history = gameInstance.history();
+            // Obtener el historial de movimientos en formato SAN desde la instancia actual
+            const history = chessGameRef.current.history();
 
             console.log('Enviando historial a Stockfish:', history);
-            console.log('FEN actual:', gameInstance.fen());
+            console.log('FEN actual:', chessGameRef.current.fen());
 
             const response = await fetch('http://localhost:8000/api/juga-stockfish', {
                 method: 'POST',
@@ -331,16 +331,15 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             console.log('Respuesta de Stockfish:', data);
 
             if (data.jugada_stockfish) {
-                // Aplicar el movimiento de Stockfish
-                const gameCopy = new Chess(gameInstance.fen());
-                const move = gameCopy.move(data.jugada_stockfish);
+                // Aplicar el movimiento de Stockfish a la instancia actual
+                const move = chessGameRef.current.move(data.jugada_stockfish);
 
                 if (move) {
-                    chessGameRef.current = gameCopy;
-                    setGamePosition(gameCopy.fen());
-                    setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
-                    calculateCapturedPieces(gameCopy);
-                    updateSquareStyles(gameCopy);
+                    // Actualizar estado después de que Stockfish haga su movimiento
+                    setGamePosition(chessGameRef.current.fen());
+                    setCurrentTurn(chessGameRef.current.turn() === 'w' ? 'white' : 'black');
+                    calculateCapturedPieces(chessGameRef.current);
+                    updateSquareStyles(chessGameRef.current);
 
                     // Agregar al historial
                     setMoveHistory(prev => [...prev, {
@@ -352,10 +351,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     }]);
 
                     // Verificar fin del juego
-                    if (gameCopy.isGameOver()) {
+                    if (chessGameRef.current.isGameOver()) {
                         let result = 'Empate';
-                        if (gameCopy.isCheckmate()) {
-                            result = gameCopy.turn() === 'w' ? 'Ganaste!' : 'Gana Stockfish';
+                        if (chessGameRef.current.isCheckmate()) {
+                            result = chessGameRef.current.turn() === 'w' ? 'Ganaste!' : 'Gana Stockfish';
                         }
                         setGameStatus('ended');
                         setGameResult(result);
