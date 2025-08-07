@@ -82,9 +82,8 @@ export default function ChessBoardAI({ user, onGameEnd }) {
     const [difficulty, setDifficulty] = useState('intermedio');
     const [difficulties, setDifficulties] = useState({});
 
-    // Configuración del jugador (siempre jugará como blancas contra Stockfish)
-    const playerColor = 'white';
-    const aiColor = 'black';
+    // Estado para color del jugador
+    const [playerColor, setPlayerColor] = useState('white');
     const boardOrientation = playerColor;
     const isPlayerTurn = currentTurn === playerColor && gameStatus === 'active';
 
@@ -410,10 +409,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
         // Si no hay moveFrom y hay una pieza, seleccionar pieza para mover
         if (!moveFrom && piece) {
-            // Verificar que la pieza es del color correcto (siempre blancas para el jugador)
+            // Verificar que la pieza es del color correcto del jugador
             const pieceColor = piece.pieceType.charAt(0) === 'w' ? 'white' : 'black';
             if (pieceColor !== playerColor) {
-                setErrorMessage('No puedes mover piezas negras');
+                const colorName = playerColor === 'white' ? 'blancas' : 'negras';
+                const wrongColorName = playerColor === 'white' ? 'negras' : 'blancas';
+                setErrorMessage(`Solo puedes mover piezas ${colorName}, no piezas ${wrongColorName}`);
                 setTimeout(() => setErrorMessage(''), 2000);
                 return;
             }
@@ -472,10 +473,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             return false;
         }
 
-        // Verificar que la pieza es del color correcto (siempre blancas para el jugador)
+        // Verificar que la pieza es del color correcto del jugador
         const pieceColor = piece.pieceType.charAt(0) === 'w' ? 'white' : 'black';
         if (pieceColor !== playerColor) {
-            setErrorMessage('No puedes mover piezas negras');
+            const colorName = playerColor === 'white' ? 'blancas' : 'negras';
+            const wrongColorName = playerColor === 'white' ? 'negras' : 'blancas';
+            setErrorMessage(`Solo puedes mover piezas ${colorName}, no piezas ${wrongColorName}`);
             setTimeout(() => setErrorMessage(''), 2000);
             return false;
         }
@@ -506,7 +509,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         if (onGameEnd) onGameEnd('Gana Stockfish - Te rendiste');
     };
 
-    const handleNewGame = () => {
+    const handleNewGame = useCallback(() => {
         // Reiniciar el juego
         chessGameRef.current = new Chess();
         setGamePosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
@@ -523,7 +526,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         setIsThinking(false);
         setPromotionMove(null);
         setShowPromotionModal(false);
-    };
+
+        // Si el jugador eligió negras, hacer que Stockfish juegue primero
+        if (playerColor === 'black') {
+            setTimeout(() => makeStockfishMove(), 500);
+        }
+    }, [playerColor, makeStockfishMove]);
 
     // Función para copiar FEN
     const copyFEN = () => {
@@ -683,16 +691,70 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     )}
                 </div>
 
+                {/* Selector de color del jugador */}
+                <div className="bg-gradient-to-br from-blue-50 to-green-50 border border-blue-200 rounded-2xl shadow-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                        <FaUser className="mr-2 text-blue-600" />
+                        Color del Jugador
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                        <button
+                            onClick={() => setPlayerColor('white')}
+                            disabled={gameStatus === 'active' && moveHistory.length > 0}
+                            className={`p-3 rounded-lg border-2 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${playerColor === 'white'
+                                ? 'border-blue-500 bg-blue-100 text-blue-800'
+                                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                                }`}
+                        >
+                            <span className="text-xl">♔</span>
+                            <span className="font-medium">Blancas</span>
+                        </button>
+
+                        <button
+                            onClick={() => setPlayerColor('black')}
+                            disabled={gameStatus === 'active' && moveHistory.length > 0}
+                            className={`p-3 rounded-lg border-2 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${playerColor === 'black'
+                                ? 'border-blue-500 bg-blue-100 text-blue-800'
+                                : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                                }`}
+                        >
+                            <span className="text-xl">♚</span>
+                            <span className="font-medium">Negras</span>
+                        </button>
+                    </div>
+
+                    <div className="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium">Juegas con:</span>
+                            <span className="font-bold text-blue-800">
+                                {playerColor === 'white' ? '♔ Blancas' : '♚ Negras'}
+                            </span>
+                        </div>
+                        <p className="text-gray-700">
+                            {playerColor === 'white'
+                                ? 'Mueves primero (ventaja de apertura)'
+                                : 'Stockfish mueve primero, tú respondes'}
+                        </p>
+                        {gameStatus === 'active' && moveHistory.length > 0 && (
+                            <div className="flex items-center text-orange-600 text-xs mt-2 p-2 bg-orange-50 rounded border border-orange-200">
+                                <span className="mr-1">⚠️</span>
+                                <span>El color solo se puede cambiar al iniciar una nueva partida</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Piezas capturadas */}
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                     <h3 className="text-lg font-semibold mb-4 text-gray-800">Piezas Capturadas</h3>
 
-                    {/* Piezas capturadas por el jugador (blancas) */}
+                    {/* Piezas capturadas por el jugador */}
                     <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-600 mb-2">Capturadas por ti:</h4>
                         <div className="flex flex-wrap gap-1 min-h-[32px] p-2 bg-gray-50 rounded-lg">
-                            {capturedPieces.white.length > 0 ? (
-                                capturedPieces.white.map((piece, index) => (
+                            {(playerColor === 'white' ? capturedPieces.white : capturedPieces.black).length > 0 ? (
+                                (playerColor === 'white' ? capturedPieces.white : capturedPieces.black).map((piece, index) => (
                                     <CapturedPiece key={index} piece={piece} size={24} />
                                 ))
                             ) : (
@@ -701,12 +763,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                         </div>
                     </div>
 
-                    {/* Piezas capturadas por Stockfish (negras) */}
+                    {/* Piezas capturadas por Stockfish */}
                     <div>
                         <h4 className="text-sm font-medium text-gray-600 mb-2">Capturadas por Stockfish:</h4>
                         <div className="flex flex-wrap gap-1 min-h-[32px] p-2 bg-gray-50 rounded-lg">
-                            {capturedPieces.black.length > 0 ? (
-                                capturedPieces.black.map((piece, index) => (
+                            {(playerColor === 'white' ? capturedPieces.black : capturedPieces.white).length > 0 ? (
+                                (playerColor === 'white' ? capturedPieces.black : capturedPieces.white).map((piece, index) => (
                                     <CapturedPiece key={index} piece={piece} size={24} />
                                 ))
                             ) : (
@@ -823,8 +885,8 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                         </h2>
                         <div className="grid grid-cols-4 gap-4">
                             {['q', 'r', 'n', 'b'].map(piece => {
-                                // Siempre usar piezas blancas para el jugador
-                                const pieceKey = piece.toUpperCase();
+                                // Usar piezas del color del jugador
+                                const pieceKey = playerColor === 'white' ? piece.toUpperCase() : piece.toLowerCase();
                                 return (
                                     <button
                                         key={piece}
