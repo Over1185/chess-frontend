@@ -221,84 +221,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         return true;
     }, []);
 
-    // Función para hacer un movimiento del jugador
-    const makeMove = useCallback((from, to, promotion = 'q') => {
-        // Verificar que es el turno del jugador
-        if (!isPlayerTurn) {
-            setErrorMessage('No es tu turno');
-            setTimeout(() => setErrorMessage(''), 2000);
-            return false;
-        }
-
-        try {
-            const gameCopy = new Chess(chessGameRef.current.fen());
-            const move = gameCopy.move({
-                from,
-                to,
-                promotion
-            });
-
-            if (move) {
-                // Actualizar estado local inmediatamente
-                chessGameRef.current = gameCopy;
-                setGamePosition(gameCopy.fen());
-                setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
-                calculateCapturedPieces(gameCopy);
-
-                // Actualizar estilos de casillas (jaque, etc.)
-                updateSquareStyles(gameCopy);
-
-                // Agregar al historial
-                setMoveHistory(prev => [...prev, {
-                    from,
-                    to,
-                    san: move.san,
-                    promotion: move.promotion,
-                    player: 'Jugador'
-                }]);
-
-                // Limpiar selección
-                setMoveFrom('');
-                setOptionSquares({});
-
-                // Verificar fin del juego
-                if (gameCopy.isGameOver()) {
-                    let result = 'Empate';
-                    if (gameCopy.isCheckmate()) {
-                        result = gameCopy.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
-                    }
-                    setGameStatus('ended');
-                    setGameResult(result);
-                    if (onGameEnd) onGameEnd(result);
-                } else {
-                    // Hacer que Stockfish juegue después de un pequeño delay
-                    setTimeout(() => makeStockfishMove(), 500);
-                }
-
-                return true;
-            }
-        } catch (error) {
-            console.error('Error making move:', error);
-            setErrorMessage('Movimiento inválido');
-            setTimeout(() => setErrorMessage(''), 2000);
-        }
-        return false;
-    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd]);
-
-    // Función para manejar selección de pieza de promoción
-    const handlePromotionSelect = useCallback((selectedPiece) => {
-        if (!promotionMove) return;
-
-        // Hacer el movimiento con la promoción seleccionada
-        const success = makeMove(promotionMove.from, promotionMove.to, selectedPiece);
-
-        // Limpiar estado de promoción
-        setPromotionMove(null);
-        setShowPromotionModal(false);
-
-        return success;
-    }, [promotionMove, makeMove]);
-
     // Función para hacer que Stockfish juegue
     const makeStockfishMove = useCallback(async () => {
         if (gameStatus !== 'active') return;
@@ -309,8 +231,11 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             // Obtener el historial de movimientos en formato SAN desde la instancia actual
             const history = chessGameRef.current.history();
 
+            console.log('=== DEBUG STOCKFISH REQUEST ===');
             console.log('Enviando historial a Stockfish:', history);
             console.log('FEN actual:', chessGameRef.current.fen());
+            console.log('Número total de movimientos:', history.length);
+            console.log('================================');
 
             const response = await fetch('http://localhost:8000/api/juga-stockfish', {
                 method: 'POST',
@@ -323,8 +248,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Error response:', response.status, errorText);
-                throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+                console.error('=== ERROR STOCKFISH ===');
+                console.error('Status:', response.status);
+                console.error('Error text:', errorText);
+                console.error('Historial enviado:', history);
+                console.error('=======================');
+                throw new Error(`Error en la respuesta del servidor: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
@@ -383,7 +312,86 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd]);    // Manejar click en casilla
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd]);
+
+    // Función para hacer un movimiento del jugador
+    const makeMove = useCallback((from, to, promotion = 'q') => {
+        // Verificar que es el turno del jugador
+        if (!isPlayerTurn) {
+            setErrorMessage('No es tu turno');
+            setTimeout(() => setErrorMessage(''), 2000);
+            return false;
+        }
+
+        try {
+            // Hacer el movimiento directamente en la instancia principal
+            const move = chessGameRef.current.move({
+                from,
+                to,
+                promotion
+            });
+
+            if (move) {
+                // Actualizar estado inmediatamente después del movimiento
+                setGamePosition(chessGameRef.current.fen());
+                setCurrentTurn(chessGameRef.current.turn() === 'w' ? 'white' : 'black');
+                calculateCapturedPieces(chessGameRef.current);
+
+                // Actualizar estilos de casillas (jaque, etc.)
+                updateSquareStyles(chessGameRef.current);
+
+                // Agregar al historial
+                setMoveHistory(prev => [...prev, {
+                    from,
+                    to,
+                    san: move.san,
+                    promotion: move.promotion,
+                    player: 'Jugador'
+                }]);
+
+                // Limpiar selección
+                setMoveFrom('');
+                setOptionSquares({});
+
+                // Verificar fin del juego
+                if (chessGameRef.current.isGameOver()) {
+                    let result = 'Empate';
+                    if (chessGameRef.current.isCheckmate()) {
+                        result = chessGameRef.current.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
+                    }
+                    setGameStatus('ended');
+                    setGameResult(result);
+                    if (onGameEnd) onGameEnd(result);
+                } else {
+                    // Hacer que Stockfish juegue después de un pequeño delay
+                    setTimeout(() => makeStockfishMove(), 500);
+                }
+
+                return true;
+            }
+        } catch (error) {
+            console.error('Error making move:', error);
+            setErrorMessage('Movimiento inválido');
+            setTimeout(() => setErrorMessage(''), 2000);
+        }
+        return false;
+    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd, makeStockfishMove]);
+
+    // Función para manejar selección de pieza de promoción
+    const handlePromotionSelect = useCallback((selectedPiece) => {
+        if (!promotionMove) return;
+
+        // Hacer el movimiento con la promoción seleccionada
+        const success = makeMove(promotionMove.from, promotionMove.to, selectedPiece);
+
+        // Limpiar estado de promoción
+        setPromotionMove(null);
+        setShowPromotionModal(false);
+
+        return success;
+    }, [promotionMove, makeMove]);
+
+    // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
         console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
 

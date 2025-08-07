@@ -277,9 +277,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     fen: gameCopy.fen()
                 };
 
-                console.log('Enviando movimiento:', moveData);
-                console.log('gameData actual:', gameData);
-
                 const sendSuccess = sendMessage(moveData);
                 if (!sendSuccess) {
                     setErrorMessage('Error enviando movimiento');
@@ -383,16 +380,12 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     const isOpponentMove = (lastMessage.current_turn === playerColor);
 
                     if (isOpponentMove) {
-                        console.log('Procesando movimiento del oponente');
                         handleOpponentMove(lastMessage);
-                    } else {
-                        console.log('Ignorando propio movimiento recibido del servidor');
                     }
                     break;
                 }
                 case 'game_start':
                     // Manejar inicio de partida desde WebSocket
-                    console.log('game_start recibido en ChessBoardOnline:', lastMessage);
                     // Ya se maneja la inicialización en el useEffect de gameData
                     break;
                 case 'game_state':
@@ -450,7 +443,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     setTimeout(() => setErrorMessage(''), 3000);
                     break;
                 default:
-                    console.log('Mensaje no manejado:', lastMessage.type);
             }
         }
     }, [lastMessage, handleOpponentMove, calculateCapturedPieces, playerColor, user?.username]);
@@ -458,7 +450,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Inicializar juego cuando se reciben los datos
     useEffect(() => {
         if (gameData) {
-            console.log('Inicializando juego con datos:', gameData);
             try {
                 const fen = gameData.current_fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
                 const newGame = new Chess(fen);
@@ -471,7 +462,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
                 // Unirse a la partida si hay ID
                 if (gameData.id && sendMessage) {
-                    console.log('Enviando join_game con game_id:', gameData.id);
                     const joinSuccess = sendMessage({
                         type: 'join_game',
                         game_id: gameData.id
@@ -536,7 +526,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
     // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
-        console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
 
         // No permitir clicks si no es el turno del jugador o el juego no está activo
         if (!isPlayerTurn || gameStatus !== 'active') {
@@ -598,7 +587,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
     // Manejar drop de pieza (drag and drop)
     const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }) => {
-        console.log('Piece dropped:', sourceSquare, '->', targetSquare, 'Piece:', piece);
 
         // Solo permitir mover si es el turno del jugador
         if (!isPlayerTurn || gameStatus !== 'active') {
