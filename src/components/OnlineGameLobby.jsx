@@ -1,20 +1,31 @@
 // src/components/OnlineGameLobby.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaSpinner, FaPlay, FaTimes, FaUsers, FaCrown } from 'react-icons/fa';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 const WEBSOCKET_URL = 'ws://localhost:8000/ws';
 
 export default function OnlineGameLobby({ user, onGameStart, onBack }) {
+    const navigate = useNavigate();
     const [isSearching, setIsSearching] = useState(false);
     const [matchFound, setMatchFound] = useState(false);
     const [gameInfo, setGameInfo] = useState(null);
     const [searchTime, setSearchTime] = useState(0);
+    const hasConnectedRef = useRef(false);
+    const hasNavigatedRef = useRef(false);
 
-    const { connectionStatus, lastMessage, sendMessage } = useWebSocket(
-        WEBSOCKET_URL,
-        user?.token
-    );
+    const { connectionStatus, lastMessage, sendMessage, connect } = useWebSocketContext();
+
+    // Conectar al WebSocket cuando el componente se monta - solo una vez
+    useEffect(() => {
+        if (user?.token && !hasConnectedRef.current) {
+            console.log('Conectando WebSocket desde OnlineGameLobby');
+            connect(WEBSOCKET_URL, user.token);
+            hasConnectedRef.current = true;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.token]); // Intencionalmente no incluir connect para evitar bucle
 
     // Timer para mostrar tiempo de búsqueda
     useEffect(() => {
@@ -54,11 +65,19 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                     isPrivate: lastMessage.is_private || false
                 });
                 onGameStart(lastMessage);
+                // Navegar automáticamente al tablero después de encontrar partida - solo una vez
+                if (!hasNavigatedRef.current) {
+                    hasNavigatedRef.current = true;
+                    setTimeout(() => {
+                        navigate('/chess-game');
+                    }, 1000); // Pequeño delay para mostrar la animación
+                }
                 break;
 
             case 'match_cancelled':
                 setIsSearching(false);
                 setMatchFound(false);
+                hasNavigatedRef.current = false; // Resetear flag de navegación
                 break;
 
             case 'error':
@@ -68,7 +87,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
 
             default:
         }
-    }, [lastMessage, onGameStart]);
+    }, [lastMessage, onGameStart, navigate]);
 
     const startSearch = () => {
         if (connectionStatus !== 'Connected') {
@@ -84,6 +103,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
             setIsSearching(true);
             setMatchFound(false);
             setSearchTime(0);
+            hasNavigatedRef.current = false; // Resetear flag de navegación
         }
     };
 
@@ -93,6 +113,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
         });
         setIsSearching(false);
         setMatchFound(false);
+        hasNavigatedRef.current = false; // Resetear flag de navegación
     };
 
     const handleBack = () => {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { getUserFromToken, isAuthenticated, checkSessionValidity, clearAuthData } from "./utils/auth";
+import { WebSocketProvider } from "./contexts/WebSocketContext";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -130,57 +131,59 @@ export default function App() {
 
   // Usuario autenticado - mostrar aplicación completa con rutas
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <Header user={user} onLogout={logout} />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
-            <Route path="/home" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
-            <Route path="/puzzles" element={<PuzzlesView user={user} onBack={() => setCurrentView("home")} />} />
-            <Route path="/learn" element={<LearnView user={user} onBack={() => setCurrentView("home")} />} />
-            <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
-            <Route path="/play" element={<PlayView user={user} setCurrentView={setCurrentView} />} />
-            <Route path="/stats" element={<StatsView user={user} onBack={() => setCurrentView("home")} />} />
-            <Route path="/classrooms" element={<ClassroomsView user={user} onBack={() => setCurrentView("home")} />} />
-            <Route
-              path="/teacher-panel"
-              element={
-                user?.type === "profesor"
-                  ? <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />
-                  : <Navigate to="/home" replace />
-              }
-            />
-            <Route
-              path="/online-lobby"
-              element={
-                <OnlineGameLobby
-                  user={user}
-                  onGameStart={handleGameStart}
-                  onBack={() => setCurrentView("play")}
-                />
-              }
-            />
-            <Route
-              path="/chess-game"
-              element={
-                gameData ? (
-                  <ChessBoardOnline
-                    gameData={gameData}
+    <WebSocketProvider>
+      <Router>
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+          <Header user={user} onLogout={logout} />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
+              <Route path="/home" element={<HomeView user={user} setCurrentView={setCurrentView} />} />
+              <Route path="/puzzles" element={<PuzzlesView user={user} onBack={() => setCurrentView("home")} />} />
+              <Route path="/learn" element={<LearnView user={user} onBack={() => setCurrentView("home")} />} />
+              <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
+              <Route path="/play" element={<PlayView user={user} setCurrentView={setCurrentView} />} />
+              <Route path="/stats" element={<StatsView user={user} onBack={() => setCurrentView("home")} />} />
+              <Route path="/classrooms" element={<ClassroomsView user={user} onBack={() => setCurrentView("home")} />} />
+              <Route
+                path="/teacher-panel"
+                element={
+                  user?.type === "profesor"
+                    ? <TeacherPanelView user={user} onBack={() => setCurrentView("home")} />
+                    : <Navigate to="/home" replace />
+                }
+              />
+              <Route
+                path="/online-lobby"
+                element={
+                  <OnlineGameLobby
                     user={user}
-                    onGameEnd={handleGameEnd}
+                    onGameStart={handleGameStart}
+                    onBack={() => setCurrentView("play")}
                   />
-                ) : (
-                  <Navigate to="/play" replace />
-                )
-              }
-            />
-            {/* Ruta por defecto */}
-            <Route path="*" element={<Navigate to="/home" replace />} />
-          </Routes>
-        </main>
-        <Footer user={user} />
-      </div>
-    </Router>
+                }
+              />
+              <Route
+                path="/chess-game"
+                element={
+                  gameData ? (
+                    <ChessBoardOnline
+                      gameData={gameData}
+                      user={user}
+                      onGameEnd={handleGameEnd}
+                    />
+                  ) : (
+                    <Navigate to="/play" replace />
+                  )
+                }
+              />
+              {/* Ruta por defecto */}
+              <Route path="*" element={<Navigate to="/home" replace />} />
+            </Routes>
+          </main>
+          <Footer user={user} />
+        </div>
+      </Router>
+    </WebSocketProvider>
   );
 }

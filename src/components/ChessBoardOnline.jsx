@@ -1,26 +1,24 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import { useWebSocket } from '../hooks/useWebSocket';
-import { FaFlag, FaHandshake, FaCopy } from 'react-icons/fa';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
+import { FaFlag, FaHandshake, FaCopy, FaSpinner } from 'react-icons/fa';
 import Modal from './Modal';
 
 const WEBSOCKET_URL = 'ws://localhost:8000/ws';
 
 export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
-
     // Usar ref para mantener la instancia del juego a través de renders
     const chessGameRef = useRef(new Chess());
-    const chessGame = chessGameRef.current;
 
     // Estado del juego
-    const [gamePosition, setGamePosition] = useState(chessGame.fen());
+    const [gamePosition, setGamePosition] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     const [moveHistory, setMoveHistory] = useState([]);
     const [currentTurn, setCurrentTurn] = useState('white');
-    const [gameStatus, setGameStatus] = useState('active');
+    const [gameStatus, setGameStatus] = useState('loading');
     const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] });
 
-    // Estados para funcionalidad de click
+    // Estados para funcionalidad de click to move
     const [moveFrom, setMoveFrom] = useState('');
     const [optionSquares, setOptionSquares] = useState({});
     const [rightClickedSquares, setRightClickedSquares] = useState({});
@@ -30,37 +28,42 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     const [showDrawModal, setShowDrawModal] = useState(false);
     const [gameResult, setGameResult] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const [isConnected, setIsConnected] = useState(false);
+    const hasConnectedRef = useRef(false);
 
-    // Determinar el color del jugador
+    // Determinar el color del jugador y orientación del tablero
     const playerColor = gameData?.player_color || 'white';
+    const boardOrientation = playerColor; // 'white' o 'black'
     const isPlayerTurn = currentTurn === playerColor;
 
-    // WebSocket connection
-    const { sendMessage, lastMessage, connectionStatus } = useWebSocket(
-        WEBSOCKET_URL,
-        user?.token  // Usar el token del usuario directamente
-    );
+    // WebSocket connection - usar contexto global
+    const { sendMessage, lastMessage, connectionStatus, connect } = useWebSocketContext();
 
+    // Asegurar conexión WebSocket - solo una vez
     useEffect(() => {
-        setIsConnected(connectionStatus === 'Connected');
-    }, [connectionStatus]);
+        if (user?.token && !hasConnectedRef.current) {
+            console.log('Conectando WebSocket desde ChessBoardOnline');
+            connect(WEBSOCKET_URL, user.token);
+            hasConnectedRef.current = true;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.token]); // Intencionalmente no incluir connect para evitar bucle
 
-    const calculateCapturedPieces = useCallback((chessGame) => {
+    // Función para calcular piezas capturadas
+    const calculateCapturedPieces = useCallback((gameInstance) => {
         const initialPieces = {
             'p': 8, 'r': 2, 'n': 2, 'b': 2, 'q': 1, 'k': 1,
             'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1, 'K': 1
         };
 
         const currentPieces = {};
-        const board = chessGame.board();
+        const board = gameInstance.board();
 
         // Contar piezas actuales en el tablero
         board.forEach(row => {
             row.forEach(square => {
                 if (square) {
-                    currentPieces[square.color === 'w' ? square.type.toUpperCase() : square.type] =
-                        (currentPieces[square.color === 'w' ? square.type.toUpperCase() : square.type] || 0) + 1;
+                    const pieceKey = square.color === 'w' ? square.type.toUpperCase() : square.type;
+                    currentPieces[pieceKey] = (currentPieces[pieceKey] || 0) + 1;
                 }
             });
         });
@@ -69,13 +72,16 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
         // Calcular piezas capturadas
         Object.keys(initialPieces).forEach(piece => {
+            const initial = initialPieces[piece];
             const current = currentPieces[piece] || 0;
-            const captured_count = initialPieces[piece] - current;
+            const capturedCount = initial - current;
 
-            for (let i = 0; i < captured_count; i++) {
+            for (let i = 0; i < capturedCount; i++) {
                 if (piece === piece.toUpperCase()) {
+                    // Pieza blanca capturada
                     captured.white.push(piece.toLowerCase());
                 } else {
+                    // Pieza negra capturada
                     captured.black.push(piece);
                 }
             }
@@ -84,94 +90,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         setCapturedPieces(captured);
     }, []);
 
-    const updateGameState = useCallback((data) => {
-        try {
-            const newGame = new Chess(data.fen);
-            chessGameRef.current = newGame;
-            setGamePosition(newGame.fen());
-            setCurrentTurn(newGame.turn() === 'w' ? 'white' : 'black');
-            setMoveHistory(data.moves || []);
-            calculateCapturedPieces(newGame);
-        } catch (error) {
-            console.error('Error updating game state:', error);
-        }
-    }, [calculateCapturedPieces]);
-
-    const handleOpponentMove = useCallback((moveData) => {
-        try {
-            const gameCopy = new Chess(chessGameRef.current.fen());
-            const move = gameCopy.move({
-                from: moveData.from,
-                to: moveData.to,
-                promotion: moveData.promotion || 'q'
-            });
-
-            if (move) {
-                chessGameRef.current = gameCopy;
-                setGamePosition(gameCopy.fen());
-                setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
-                setMoveHistory(prev => [...prev, moveData]);
-                calculateCapturedPieces(gameCopy);
-
-                // Verificar fin del juego
-                if (gameCopy.isGameOver()) {
-                    let result = 'Empate';
-                    if (gameCopy.isCheckmate()) {
-                        result = gameCopy.turn() === 'w' ? 'Ganan las negras' : 'Ganan las blancas';
-                    }
-                    setGameStatus('ended');
-                    setGameResult(result);
-                }
-            }
-        } catch (error) {
-            console.error('Error processing opponent move:', error);
-        }
-    }, [calculateCapturedPieces]);
-
-    // Procesar mensajes del WebSocket
-    useEffect(() => {
-        if (lastMessage) {
-
-            switch (lastMessage.type) {
-                case 'move':
-                    handleOpponentMove(lastMessage.move);
-                    break;
-                case 'game_state':
-                    updateGameState(lastMessage);
-                    break;
-                case 'game_end':
-                    setGameStatus('ended');
-                    setGameResult(lastMessage.result);
-                    if (onGameEnd) onGameEnd(lastMessage);
-                    break;
-                case 'error':
-                    setErrorMessage(lastMessage.message);
-                    setTimeout(() => setErrorMessage(''), 3000);
-                    break;
-                default:
-            }
-        }
-    }, [lastMessage, handleOpponentMove, updateGameState, onGameEnd]);
-
-    // Inicializar juego cuando se reciben los datos
-    useEffect(() => {
-        if (gameData?.current_fen) {
-            try {
-                const newGame = new Chess(gameData.current_fen);
-                chessGameRef.current = newGame;
-                setGamePosition(newGame.fen());
-                setCurrentTurn(newGame.turn() === 'w' ? 'white' : 'black');
-                setMoveHistory(gameData.moves || []);
-
-                // Calcular piezas capturadas
-                calculateCapturedPieces(newGame);
-            } catch (error) {
-                console.error('Error loading game state:', error);
-            }
-        }
-    }, [gameData, calculateCapturedPieces]);
-
-    // Función para obtener opciones de movimiento (click to move)
+    // Función para obtener movimientos válidos de una casilla
     const getMoveOptions = useCallback((square) => {
         const moves = chessGameRef.current.moves({
             square,
@@ -185,19 +104,19 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
         const newSquares = {};
 
-        // Agregar círculos para movimientos válidos
+        // Mostrar movimientos válidos
         moves.forEach(move => {
             newSquares[move.to] = {
                 background:
                     chessGameRef.current.get(move.to) &&
                         chessGameRef.current.get(move.to)?.color !== chessGameRef.current.get(square)?.color
-                        ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)' // círculo grande para captura
-                        : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)', // círculo pequeño para movimiento
+                        ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)' // captura
+                        : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)', // movimiento
                 borderRadius: '50%',
             };
         });
 
-        // Marcar el cuadrado seleccionado
+        // Resaltar casilla seleccionada
         newSquares[square] = {
             background: 'rgba(255, 255, 0, 0.4)',
         };
@@ -206,8 +125,15 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         return true;
     }, []);
 
-    // Función unificada para hacer movimientos
+    // Función para hacer un movimiento
     const makeMove = useCallback((from, to, promotion = 'q') => {
+        // Verificar que es el turno del jugador
+        if (!isPlayerTurn || gameStatus !== 'active') {
+            setErrorMessage('No es tu turno');
+            setTimeout(() => setErrorMessage(''), 2000);
+            return false;
+        }
+
         try {
             const gameCopy = new Chess(chessGameRef.current.fen());
             const move = gameCopy.move({
@@ -217,13 +143,16 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             });
 
             if (move) {
+                // Actualizar estado local inmediatamente
                 chessGameRef.current = gameCopy;
                 setGamePosition(gameCopy.fen());
                 setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
+                calculateCapturedPieces(gameCopy);
 
                 // Enviar movimiento al servidor
                 const moveData = {
                     type: 'move',
+                    game_id: gameData.id,
                     from,
                     to,
                     promotion: move.promotion || null,
@@ -231,9 +160,16 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     fen: gameCopy.fen()
                 };
 
+                console.log('Enviando movimiento:', moveData);
                 sendMessage(moveData);
-                setMoveHistory(prev => [...prev, moveData]);
-                calculateCapturedPieces(gameCopy);
+
+                // Agregar al historial
+                setMoveHistory(prev => [...prev, {
+                    from,
+                    to,
+                    san: move.san,
+                    promotion: move.promotion
+                }]);
 
                 // Limpiar selección
                 setMoveFrom('');
@@ -253,12 +189,120 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             }
         } catch (error) {
             console.error('Error making move:', error);
+            setErrorMessage('Movimiento inválido');
+            setTimeout(() => setErrorMessage(''), 2000);
         }
         return false;
-    }, [sendMessage, calculateCapturedPieces]);
+    }, [isPlayerTurn, gameStatus, gameData?.id, sendMessage, calculateCapturedPieces]);
 
-    // Función para manejar clicks en cuadrados
+    // Manejar movimiento del oponente
+    const handleOpponentMove = useCallback((moveData) => {
+        console.log('Movimiento del oponente recibido:', moveData);
+        try {
+            const gameCopy = new Chess(chessGameRef.current.fen());
+            const move = gameCopy.move({
+                from: moveData.from,
+                to: moveData.to,
+                promotion: moveData.promotion || 'q'
+            });
+
+            if (move) {
+                chessGameRef.current = gameCopy;
+                setGamePosition(gameCopy.fen());
+                setCurrentTurn(gameCopy.turn() === 'w' ? 'white' : 'black');
+                calculateCapturedPieces(gameCopy);
+
+                // Agregar al historial
+                setMoveHistory(prev => [...prev, {
+                    from: moveData.from,
+                    to: moveData.to,
+                    san: moveData.san || move.san,
+                    promotion: moveData.promotion
+                }]);
+
+                // Verificar fin del juego
+                if (gameCopy.isGameOver()) {
+                    let result = 'Empate';
+                    if (gameCopy.isCheckmate()) {
+                        result = gameCopy.turn() === 'w' ? 'Ganan las negras' : 'Ganan las blancas';
+                    }
+                    setGameStatus('ended');
+                    setGameResult(result);
+                }
+            }
+        } catch (error) {
+            console.error('Error processing opponent move:', error);
+        }
+    }, [calculateCapturedPieces]);
+
+    // Procesar mensajes del WebSocket
+    useEffect(() => {
+        if (lastMessage) {
+            console.log('Mensaje WebSocket recibido:', lastMessage);
+
+            switch (lastMessage.type) {
+                case 'move':
+                    handleOpponentMove(lastMessage);
+                    break;
+                case 'game_state':
+                    // Actualizar estado completo del juego
+                    try {
+                        const newGame = new Chess(lastMessage.fen);
+                        chessGameRef.current = newGame;
+                        setGamePosition(newGame.fen());
+                        setCurrentTurn(newGame.turn() === 'w' ? 'white' : 'black');
+                        setMoveHistory(lastMessage.moves || []);
+                        calculateCapturedPieces(newGame);
+                        setGameStatus('active');
+                    } catch (error) {
+                        console.error('Error updating game state:', error);
+                    }
+                    break;
+                case 'game_end':
+                    setGameStatus('ended');
+                    setGameResult(lastMessage.result);
+                    break;
+                case 'error':
+                    setErrorMessage(lastMessage.message);
+                    setTimeout(() => setErrorMessage(''), 3000);
+                    break;
+                default:
+                    console.log('Mensaje no manejado:', lastMessage.type);
+            }
+        }
+    }, [lastMessage, handleOpponentMove, calculateCapturedPieces]);
+
+    // Inicializar juego cuando se reciben los datos
+    useEffect(() => {
+        if (gameData) {
+            console.log('Inicializando juego con datos:', gameData);
+            try {
+                const fen = gameData.current_fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+                const newGame = new Chess(fen);
+                chessGameRef.current = newGame;
+                setGamePosition(newGame.fen());
+                setCurrentTurn(newGame.turn() === 'w' ? 'white' : 'black');
+                setMoveHistory(gameData.moves || []);
+                calculateCapturedPieces(newGame);
+                setGameStatus('active');
+
+                // Unirse a la partida si hay ID
+                if (gameData.id && sendMessage) {
+                    sendMessage({
+                        type: 'join_game',
+                        game_id: gameData.id
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading game state:', error);
+                setErrorMessage('Error al cargar la partida');
+            }
+        }
+    }, [gameData, sendMessage, calculateCapturedPieces]);
+
+    // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
+        console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
 
         // No permitir clicks si no es el turno del jugador o el juego no está activo
         if (!isPlayerTurn || gameStatus !== 'active') {
@@ -268,7 +312,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         // Si no hay moveFrom y hay una pieza, seleccionar pieza para mover
         if (!moveFrom && piece) {
             // Verificar que la pieza es del color correcto
-            const pieceColor = piece.charAt(0) === 'w' ? 'white' : 'black';
+            const pieceColor = piece.pieceType.charAt(0) === 'w' ? 'white' : 'black';
             if (pieceColor !== playerColor) {
                 setErrorMessage('No puedes mover piezas del oponente');
                 setTimeout(() => setErrorMessage(''), 2000);
@@ -294,7 +338,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             if (!foundMove) {
                 // Verificar si se clickeó una nueva pieza
                 if (piece) {
-                    const pieceColor = piece.charAt(0) === 'w' ? 'white' : 'black';
+                    const pieceColor = piece.pieceType.charAt(0) === 'w' ? 'white' : 'black';
                     if (pieceColor === playerColor) {
                         const hasMoveOptions = getMoveOptions(square);
                         setMoveFrom(hasMoveOptions ? square : '');
@@ -311,38 +355,33 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             // Hacer el movimiento
             makeMove(moveFrom, square, foundMove.promotion);
         }
-    }, [moveFrom, isPlayerTurn, gameStatus, playerColor, currentTurn, getMoveOptions, makeMove]);
+    }, [moveFrom, isPlayerTurn, gameStatus, playerColor, getMoveOptions, makeMove]);
 
-    const onPieceDrop = useCallback((sourceSquare, targetSquare) => {
+    // Manejar drop de pieza (drag and drop)
+    const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }) => {
+        console.log('Piece dropped:', sourceSquare, '->', targetSquare, 'Piece:', piece);
 
         // Solo permitir mover si es el turno del jugador
-        if (!isPlayerTurn) {
+        if (!isPlayerTurn || gameStatus !== 'active') {
             setErrorMessage('No es tu turno');
             setTimeout(() => setErrorMessage(''), 2000);
             return false;
         }
 
-        // Verificar estado del juego
-        if (gameStatus !== 'active') {
-            return false;
-        }
-
-        // Verificar que el movimiento es del color correcto
-        const piece = chessGameRef.current.get(sourceSquare);
-
-        if (piece && piece.color !== (playerColor === 'white' ? 'w' : 'b')) {
+        // Verificar que la pieza es del color correcto
+        const pieceColor = piece.pieceType.charAt(0) === 'w' ? 'white' : 'black';
+        if (pieceColor !== playerColor) {
             setErrorMessage('No puedes mover piezas del oponente');
             setTimeout(() => setErrorMessage(''), 2000);
             return false;
         }
 
-        // Hacer el movimiento usando la función unificada
-        const success = makeMove(sourceSquare, targetSquare);
-        return success;
-    }, [isPlayerTurn, playerColor, gameStatus, currentTurn, makeMove]);
+        // Hacer el movimiento
+        return makeMove(sourceSquare, targetSquare);
+    }, [isPlayerTurn, gameStatus, playerColor, makeMove]);
 
-    // Función para manejar right-click en squares (para marcar/desmarcar)
-    const onSquareRightClick = useCallback((square) => {
+    // Manejar right-click en casillas
+    const onSquareRightClick = useCallback(({ square }) => {
         const color = 'rgba(0, 0, 255, 0.4)';
         setRightClickedSquares(prev => ({
             ...prev,
@@ -350,10 +389,12 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         }));
     }, []);
 
+    // Funciones de control del juego
     const handleResign = () => {
         if (sendMessage) {
             sendMessage({
                 type: 'resign',
+                game_id: gameData?.id,
                 player: playerColor
             });
         }
@@ -366,6 +407,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         if (sendMessage) {
             sendMessage({
                 type: 'draw_offer',
+                game_id: gameData?.id,
                 player: playerColor
             });
         }
@@ -378,11 +420,29 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         setTimeout(() => setErrorMessage(''), 2000);
     };
 
+    // Configuración del tablero para react-chessboard v5
+    const chessboardOptions = {
+        position: gamePosition,
+        onPieceDrop,
+        onSquareClick,
+        onSquareRightClick,
+        boardOrientation,
+        squareStyles: {
+            ...optionSquares,
+            ...rightClickedSquares
+        },
+        allowDragging: isPlayerTurn && gameStatus === 'active',
+        id: `chessboard-${gameData?.id || 'default'}`,
+        showNotation: true,
+        animationDurationInMs: 200
+    };
+
+    // Renderizado condicional para estados de carga
     if (!gameData) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
                     <p className="text-gray-600">Cargando partida...</p>
                 </div>
             </div>
@@ -405,22 +465,16 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         );
     }
 
-    if (!gameData.session_token) {
+    if (gameStatus === 'loading') {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
-                    <p className="text-red-600">Error: Token de sesión no encontrado</p>
-                    <button
-                        onClick={() => onGameEnd && onGameEnd()}
-                        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg"
-                    >
-                        Volver al menú
-                    </button>
+                    <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
+                    <p className="text-gray-600">Conectando a la partida...</p>
                 </div>
             </div>
         );
     }
-
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
@@ -437,9 +491,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                             </p>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${connectionStatus === 'Connected' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}>
-                                {isConnected ? 'Conectado' : 'Desconectado'}
+                                {connectionStatus === 'Connected' ? 'Conectado' : 'Desconectado'}
                             </div>
                             <div className={`px-3 py-1 rounded-full text-sm font-medium ${isPlayerTurn ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                                 }`}>
@@ -449,6 +503,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     </div>
                 </div>
 
+                {/* Layout principal */}
                 <div className="grid lg:grid-cols-4 gap-6">
                     {/* Panel izquierdo - Información del oponente */}
                     <div className="lg:col-span-1">
@@ -479,50 +534,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     <div className="lg:col-span-2">
                         <div className="bg-white rounded-2xl shadow-lg p-6">
                             <div className="aspect-square max-w-full mx-auto">
-                                <Chessboard
-                                    position={gamePosition}
-                                    onPieceDrop={onPieceDrop}
-                                    onSquareClick={onSquareClick}
-                                    onSquareRightClick={onSquareRightClick}
-                                    boardOrientation={playerColor === 'white' ? 'white' : 'black'}
-                                    arePiecesDraggable={true} // Temporalmente siempre true para debug
-                                    customSquareStyles={{
-                                        ...optionSquares,
-                                        ...rightClickedSquares
-                                    }}
-                                    onDragOverSquare={(square) => {
-                                        // Mostrar posibles movimientos cuando se arrastra sobre un square
-                                        if (moveFrom) {
-                                            const moves = chessGameRef.current.moves({
-                                                square: moveFrom,
-                                                verbose: true,
-                                            });
-                                            const move = moves.find(m => m.to === square);
-                                            if (move) {
-                                                return {
-                                                    background: 'rgba(0, 255, 0, 0.4)'
-                                                };
-                                            }
-                                        }
-                                        return {};
-                                    }}
-                                    onPieceDragBegin={(piece, sourceSquare) => {
-                                        // Mostrar opciones de movimiento cuando se empieza a arrastrar
-                                        getMoveOptions(sourceSquare);
-                                        setMoveFrom(sourceSquare);
-                                    }}
-                                    onPieceDragEnd={() => {
-                                        // Limpiar opciones cuando se termina de arrastrar
-                                        setOptionSquares({});
-                                        setMoveFrom('');
-                                    }}
-                                    customBoardStyle={{
-                                        borderRadius: '4px',
-                                        boxShadow: '0 5px 15px rgba(0, 0, 0, 0.5)'
-                                    }}
-                                    customDarkSquareStyle={{ backgroundColor: '#779952' }}
-                                    customLightSquareStyle={{ backgroundColor: '#edeed1' }}
-                                />
+                                <Chessboard options={chessboardOptions} />
                             </div>
 
                             {/* Controles del juego */}
@@ -554,7 +566,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                         </div>
                     </div>
 
-                    {/* Panel derecho - Información del jugador */}
+                    {/* Panel derecho - Información del jugador y historial */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                             <h3 className="font-bold text-gray-800 mb-4">

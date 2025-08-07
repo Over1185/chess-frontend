@@ -8,34 +8,34 @@ import {
     FaSpinner,
     FaCrown
 } from "react-icons/fa";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { authFetch } from "../utils/auth";
 
-export default function HomeView({ user, setCurrentView }) {
+export default function HomeView({ user }) {
+    const navigate = useNavigate();
     const [estadisticas, setEstadisticas] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const obtenerEstadisticas = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await authFetch(`/estadisticas/${user.username}`);
+            const data = await response.json();
+            setEstadisticas(data);
+        } catch (error) {
+            console.error('Error al obtener estadísticas:', error);
+            setEstadisticas(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [user.username]);
 
     useEffect(() => {
         if (user?.username) {
             obtenerEstadisticas();
         }
-    }, [user]);
-
-    const obtenerEstadisticas = async () => {
-        try {
-            setLoading(true);
-            const response = await authFetch(`/estadisticas/${user.username}`);
-
-            if (response.ok) {
-                const data = await response.json();
-                setEstadisticas(data);
-            }
-        } catch (error) {
-            console.error("Error al obtener estadísticas:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [user, obtenerEstadisticas]);
     const quickActions = [
         {
             key: "play",
@@ -43,28 +43,32 @@ export default function HomeView({ user, setCurrentView }) {
             description: "Inicia una nueva partida",
             icon: FaPlay,
             color: "bg-blue-500 hover:bg-blue-600",
-            primary: true
+            primary: true,
+            path: "/play"
         },
         {
             key: "puzzles",
             title: "Puzzles",
             description: "Resuelve problemas tácticos",
             icon: FaPuzzlePiece,
-            color: "bg-purple-500 hover:bg-purple-600"
+            color: "bg-purple-500 hover:bg-purple-600",
+            path: "/puzzles"
         },
         {
             key: "learn",
             title: "Lecciones",
             description: "Aprende nuevas técnicas",
             icon: FaBook,
-            color: "bg-green-500 hover:bg-green-600"
+            color: "bg-green-500 hover:bg-green-600",
+            path: "/learn"
         },
         {
             key: "stats",
             title: "Estadísticas",
             description: "Ve tu progreso",
             icon: FaChartBar,
-            color: "bg-indigo-500 hover:bg-indigo-600"
+            color: "bg-indigo-500 hover:bg-indigo-600",
+            path: "/stats"
         },
         // Solo mostrar el panel del profesor para usuarios con rol "profesor"
         ...(user?.type === "profesor" ? [{
@@ -73,7 +77,8 @@ export default function HomeView({ user, setCurrentView }) {
             description: "Gestiona estudiantes y contenido",
             icon: FaCrown,
             color: "bg-emerald-500 hover:bg-emerald-600",
-            primary: true
+            primary: true,
+            path: "/teacher-panel"
         }] : [])
     ];
 
@@ -133,10 +138,10 @@ export default function HomeView({ user, setCurrentView }) {
                     <div className="bg-white rounded-2xl shadow-lg p-6">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">Acciones Rápidas</h3>
                         <div className="space-y-3">
-                            {quickActions.map(({ key, title, description, icon: Icon, color, primary }) => (
+                            {quickActions.map(({ key, title, description, icon: Icon, color, primary, path }) => (
                                 <button
                                     key={key}
-                                    onClick={() => setCurrentView(key)}
+                                    onClick={() => navigate(path)}
                                     className={`w-full p-4 rounded-lg text-white font-medium transition-all transform hover:scale-105 active:scale-95 ${color} ${primary ? "shadow-lg" : "shadow-md"} flex items-center justify-between`}
                                 >
                                     <div className="text-left">
@@ -177,7 +182,7 @@ export default function HomeView({ user, setCurrentView }) {
                             ))}
                             {estadisticas.partidas_recientes.length > 3 && (
                                 <button
-                                    onClick={() => setCurrentView('stats')}
+                                    onClick={() => navigate('/stats')}
                                     className="w-full text-center text-indigo-600 hover:text-indigo-800 text-sm font-medium py-2"
                                 >
                                     Ver todas las partidas

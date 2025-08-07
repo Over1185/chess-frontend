@@ -1,6 +1,8 @@
 import { FaPlay, FaUsers, FaCog } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
-export default function PlayView({ setCurrentView }) {
+export default function PlayView() {
+    const navigate = useNavigate();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
@@ -23,7 +25,7 @@ export default function PlayView({ setCurrentView }) {
                                 Juega contra Stockfish con diferentes niveles de dificultad
                             </p>
                             <button
-                                onClick={() => setCurrentView("game-computer")}
+                                onClick={() => navigate("/play/computer")}
                                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
                             >
                                 <FaPlay />
@@ -45,8 +47,8 @@ export default function PlayView({ setCurrentView }) {
                                 Busca una partida en línea o juega con un amigo
                             </p>
                             <button
-                                onClick={() => setCurrentView("online-lobby")}
-                                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+                                onClick={() => navigate("/online-lobby")}
+                                className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
                             >
                                 <FaPlay />
                                 <span>Jugar Online</span>
