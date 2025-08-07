@@ -80,13 +80,6 @@ export default function App() {
     clearAuthData();
   }
 
-  // Función para actualizar progreso de lecciones
-  const updateUserProgress = (newProgress) => {
-    setUser(prev => ({
-      ...prev,
-      lecciones_vistas: newProgress
-    }));
-  };
 
   // Funciones para manejar las partidas online
   const handleGameStart = (gameStartData) => {
