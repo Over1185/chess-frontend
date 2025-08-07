@@ -53,6 +53,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Usar ref para mantener la instancia del juego a través de renders
     const chessGameRef = useRef(new Chess());
 
+    // Ref para el contenedor de movimientos
+    const movesContainerRef = useRef(null);
+
     // Estado del juego
     const [gamePosition, setGamePosition] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
     const [moveHistory, setMoveHistory] = useState([]);
@@ -363,6 +366,17 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         }
     }, [gameData, sendMessage, calculateCapturedPieces]);
 
+    // Auto-scroll del contenedor de movimientos cuando se agrega un nuevo movimiento
+    useEffect(() => {
+        if (movesContainerRef.current && moveHistory.length > 0) {
+            // Scroll suave al final del contenedor, no de toda la página
+            movesContainerRef.current.scrollTo({
+                top: movesContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [moveHistory.length]); // Solo cuando cambia el número de movimientos
+
     // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
         console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
@@ -655,15 +669,101 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
                         {/* Historial de movimientos */}
                         <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h3 className="font-bold text-gray-800 mb-4">Movimientos</h3>
-                            <div className="max-h-96 overflow-y-auto space-y-1">
-                                {moveHistory.map((move, index) => (
-                                    <div key={index} className="flex justify-between text-sm">
-                                        <span className="text-gray-600">{Math.floor(index / 2) + 1}.</span>
-                                        <span className="text-gray-800">{move.san}</span>
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center justify-between">
+                                <span>Movimientos</span>
+                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                    {Math.ceil(moveHistory.length / 2)} jugadas
+                                </span>
+                            </h3>
+
+                            <div ref={movesContainerRef} className="max-h-96 overflow-y-auto">
+                                {moveHistory.length === 0 ? (
+                                    <div className="text-center text-gray-400 py-8">
+                                        <div className="text-3xl mb-2">♔♛</div>
+                                        <p>No hay movimientos aún</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    <div className="space-y-1">
+                                        {/* Agrupar movimientos por pares (blancas y negras) */}
+                                        {Array.from({ length: Math.ceil(moveHistory.length / 2) }, (_, pairIndex) => {
+                                            const whiteMove = moveHistory[pairIndex * 2];
+                                            const blackMove = moveHistory[pairIndex * 2 + 1];
+                                            const moveNumber = pairIndex + 1;
+
+                                            return (
+                                                <div key={pairIndex} className="group">
+                                                    <div className="flex items-center hover:bg-gray-50 rounded-lg p-2 transition-colors">
+                                                        {/* Número de movimiento */}
+                                                        <div className="w-8 text-center text-sm font-medium text-gray-500 mr-3">
+                                                            {moveNumber}.
+                                                        </div>
+
+                                                        {/* Movimiento de blancas */}
+                                                        <div className="flex-1 min-w-0">
+                                                            {whiteMove && (
+                                                                <div className="flex items-center space-x-2">
+                                                                    <div className="w-4 h-4 bg-white border-2 border-gray-300 rounded-sm flex-shrink-0"></div>
+                                                                    <span className="font-medium text-gray-800 truncate">
+                                                                        {whiteMove.san}
+                                                                    </span>
+                                                                    {whiteMove.san?.includes('+') && (
+                                                                        <span className="text-red-500 text-xs">⚠</span>
+                                                                    )}
+                                                                    {whiteMove.san?.includes('#') && (
+                                                                        <span className="text-red-600 text-xs">✗</span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Movimiento de negras */}
+                                                        <div className="flex-1 min-w-0">
+                                                            {blackMove ? (
+                                                                <div className="flex items-center space-x-2">
+                                                                    <div className="w-4 h-4 bg-gray-800 border border-gray-800 rounded-sm flex-shrink-0"></div>
+                                                                    <span className="font-medium text-gray-800 truncate">
+                                                                        {blackMove.san}
+                                                                    </span>
+                                                                    {blackMove.san?.includes('+') && (
+                                                                        <span className="text-red-500 text-xs">⚠</span>
+                                                                    )}
+                                                                    {blackMove.san?.includes('#') && (
+                                                                        <span className="text-red-600 text-xs">✗</span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center space-x-2 text-gray-400">
+                                                                    <div className="w-4 h-4 border-2 border-dashed border-gray-300 rounded-sm flex-shrink-0"></div>
+                                                                    <span className="text-sm">...</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Línea separadora sutil */}
+                                                    {pairIndex < Math.ceil(moveHistory.length / 2) - 1 && (
+                                                        <div className="mx-4 border-b border-gray-100"></div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Footer con información adicional */}
+                            {moveHistory.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <div className="flex justify-between text-xs text-gray-500">
+                                        <span>
+                                            Turno: {moveHistory.length % 2 === 0 ? 'Blancas' : 'Negras'}
+                                        </span>
+                                        <span>
+                                            Último: {moveHistory[moveHistory.length - 1]?.san}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
