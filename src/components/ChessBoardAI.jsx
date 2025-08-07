@@ -309,19 +309,26 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             // Obtener el historial de movimientos en formato SAN
             const history = gameInstance.history();
 
+            console.log('Enviando historial a Stockfish:', history);
+            console.log('FEN actual:', gameInstance.fen());
+
             const response = await fetch('http://localhost:8000/api/juga-stockfish', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(history)
+                body: JSON.stringify(history),
+                signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
             });
 
             if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
+                const errorText = await response.text();
+                console.error('Error response:', response.status, errorText);
+                throw new Error(`Error en la respuesta del servidor: ${response.status}`);
             }
 
             const data = await response.json();
+            console.log('Respuesta de Stockfish:', data);
 
             if (data.jugada_stockfish) {
                 // Aplicar el movimiento de Stockfish
@@ -354,18 +361,30 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                         setGameResult(result);
                         if (onGameEnd) onGameEnd(result);
                     }
+                } else {
+                    console.error('No se pudo aplicar el movimiento de Stockfish:', data.jugada_stockfish);
+                    setErrorMessage('Error al procesar movimiento de Stockfish');
+                    setTimeout(() => setErrorMessage(''), 3000);
                 }
+            } else {
+                console.warn('Stockfish no devolvió ningún movimiento');
+                setErrorMessage('Stockfish no pudo encontrar un movimiento');
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error al obtener movimiento de Stockfish:', error);
-            setErrorMessage('Error de conexión con la IA');
-            setTimeout(() => setErrorMessage(''), 3000);
+            if (error.name === 'AbortError') {
+                setErrorMessage('Timeout - Stockfish tardó demasiado en responder');
+            } else if (error.message.includes('fetch')) {
+                setErrorMessage('Error de conexión con el servidor');
+            } else {
+                setErrorMessage('Error de conexión con la IA');
+            }
+            setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd]);
-
-    // Manejar click en casilla
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd]);    // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
         console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
 
