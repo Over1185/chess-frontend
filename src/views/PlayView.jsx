@@ -1,4 +1,4 @@
-import { FaPlay, FaUsers, FaCog } from "react-icons/fa";
+import { FaPlay, FaUsers, FaRobot } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 export default function PlayView() {
@@ -16,7 +16,7 @@ export default function PlayView() {
                     <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all transform hover:scale-105">
                         <div className="text-center">
                             <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <FaCog className="text-3xl text-white" />
+                                <FaRobot className="text-3xl text-white" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-800 mb-4">
                                 Contra la Computadora
@@ -25,7 +25,7 @@ export default function PlayView() {
                                 Juega contra Stockfish con diferentes niveles de dificultad
                             </p>
                             <button
-                                onClick={() => navigate("/play/computer")}
+                                onClick={() => navigate("/ai-play")}
                                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
                             >
                                 <FaPlay />

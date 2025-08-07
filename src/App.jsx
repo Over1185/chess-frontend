@@ -15,6 +15,7 @@ import RegisterView from "./views/RegisterView";
 import PuzzlesView from "./views/PuzzlesView";
 import LearnView from "./views/LearnView";
 import PlayView from "./views/PlayView";
+import AIPlayView from "./views/AIPlayView";
 import StatsView from "./views/StatsView";
 import ClassroomsView from "./views/ClassroomsView";
 import TeacherPanelView from "./views/TeacherPanelView";
@@ -145,6 +146,7 @@ export default function App() {
               <Route path="/learn" element={<LearnView user={user} onBack={() => setCurrentView("home")} />} />
               <Route path="/learn/:lessonId" element={<DynamicLessonView user={user} />} />
               <Route path="/play" element={<PlayView user={user} setCurrentView={setCurrentView} />} />
+              <Route path="/ai-play" element={<AIPlayView user={user} />} />
               <Route path="/stats" element={<StatsView user={user} onBack={() => setCurrentView("home")} />} />
               <Route path="/classrooms" element={<ClassroomsView user={user} onBack={() => setCurrentView("home")} />} />
               <Route
