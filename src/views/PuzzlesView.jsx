@@ -32,7 +32,7 @@ export default function PuzzlesView() {
                         <h1 className="text-5xl font-bold text-gray-800 mb-6">
                             Puzzles de Ajedrez
                         </h1>
-                        
+
                         {/* Estado de construcción */}
                         <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8 mb-8">
                             <h2 className="text-3xl font-bold text-purple-700 mb-4">
