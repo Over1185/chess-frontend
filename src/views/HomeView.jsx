@@ -36,7 +36,38 @@ export default function HomeView({ user }) {
             obtenerEstadisticas();
         }
     }, [user, obtenerEstadisticas]);
-    const quickActions = [
+
+    // Configurar acciones rápidas según el tipo de usuario
+    const quickActions = user?.type === "profesor" ? [
+        // Acciones para profesores
+        {
+            key: "play",
+            title: "Jugar",
+            description: "Inicia una nueva partida",
+            icon: FaPlay,
+            color: "bg-blue-500 hover:bg-blue-600",
+            primary: true,
+            path: "/play"
+        },
+        {
+            key: "stats",
+            title: "Estadísticas",
+            description: "Ve tu progreso",
+            icon: FaChartBar,
+            color: "bg-indigo-500 hover:bg-indigo-600",
+            path: "/stats"
+        },
+        {
+            key: "teacher-panel",
+            title: "Panel del Profesor",
+            description: "Gestiona estudiantes y contenido",
+            icon: FaCrown,
+            color: "bg-emerald-500 hover:bg-emerald-600",
+            primary: true,
+            path: "/teacher-panel"
+        }
+    ] : [
+        // Acciones para usuarios regulares
         {
             key: "play",
             title: "Jugar",
@@ -69,17 +100,7 @@ export default function HomeView({ user }) {
             icon: FaChartBar,
             color: "bg-indigo-500 hover:bg-indigo-600",
             path: "/stats"
-        },
-        // Solo mostrar el panel del profesor para usuarios con rol "profesor"
-        ...(user?.type === "profesor" ? [{
-            key: "teacher-panel",
-            title: "Panel del Profesor",
-            description: "Gestiona estudiantes y contenido",
-            icon: FaCrown,
-            color: "bg-emerald-500 hover:bg-emerald-600",
-            primary: true,
-            path: "/teacher-panel"
-        }] : [])
+        }
     ];
 
     return (
