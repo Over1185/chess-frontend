@@ -84,6 +84,7 @@ export default function App() {
 
   // Funciones para manejar las partidas online
   const handleGameStart = (gameStartData) => {
+    console.log('handleGameStart called with:', gameStartData);
 
     // Formatear los datos para el componente ChessBoardOnline
     const formattedGameData = {
@@ -95,6 +96,7 @@ export default function App() {
       session_token: user?.token // Agregar token para WebSocket
     };
 
+    console.log('Setting gameData to:', formattedGameData);
     setGameData(formattedGameData);
     // Navegar a la partida será manejado por React Router
   };

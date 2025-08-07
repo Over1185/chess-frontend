@@ -62,6 +62,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                 break;
 
             case 'game_start':
+                console.log('game_start message received:', lastMessage);
                 setMatchFound(true);
                 setIsSearching(false);
                 setGameInfo({
@@ -71,6 +72,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                     yourColor: lastMessage.your_color,
                     isPrivate: lastMessage.is_private || false
                 });
+                console.log('Calling handleGameStart with:', lastMessage);
                 handleGameStartRef.current?.(lastMessage);
                 // Navegar automáticamente al tablero después de encontrar partida - solo una vez
                 if (!hasNavigatedRef.current) {
@@ -98,14 +100,17 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
 
     const startSearch = () => {
         if (connectionStatus !== 'Connected') {
+            console.warn('Cannot start search - WebSocket not connected');
             return;
         }
 
+        console.log('Sending find_match with user rating:', user?.rating || 1200);
         const success = sendMessage({
             type: 'find_match',
             elo: user?.rating || 1200
         });
 
+        console.log('find_match message sent successfully:', success);
         if (success) {
             setIsSearching(true);
             setMatchFound(false);

@@ -159,7 +159,15 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     fen: gameCopy.fen()
                 };
 
-                sendMessage(moveData);
+                console.log('Enviando movimiento:', moveData);
+                console.log('gameData actual:', gameData);
+
+                const sendSuccess = sendMessage(moveData);
+                if (!sendSuccess) {
+                    setErrorMessage('Error enviando movimiento');
+                    setTimeout(() => setErrorMessage(''), 2000);
+                    return false;
+                }
 
                 // Agregar al historial
                 setMoveHistory(prev => [...prev, {
@@ -191,7 +199,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             setTimeout(() => setErrorMessage(''), 2000);
         }
         return false;
-    }, [isPlayerTurn, gameStatus, gameData?.id, sendMessage, calculateCapturedPieces]);
+    }, [isPlayerTurn, gameStatus, gameData, sendMessage, calculateCapturedPieces]);
 
     // Manejar movimiento del oponente
     const handleOpponentMove = useCallback((moveData) => {
@@ -251,6 +259,11 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     }
                     break;
                 }
+                case 'game_start':
+                    // Manejar inicio de partida desde WebSocket
+                    console.log('game_start recibido en ChessBoardOnline:', lastMessage);
+                    // Ya se maneja la inicialización en el useEffect de gameData
+                    break;
                 case 'game_state':
                     // Actualizar estado completo del juego
                     try {
@@ -295,10 +308,12 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
                 // Unirse a la partida si hay ID
                 if (gameData.id && sendMessage) {
-                    sendMessage({
+                    console.log('Enviando join_game con game_id:', gameData.id);
+                    const joinSuccess = sendMessage({
                         type: 'join_game',
                         game_id: gameData.id
                     });
+                    console.log('join_game enviado exitosamente:', joinSuccess);
                 }
             } catch (error) {
                 console.error('Error loading game state:', error);
