@@ -71,6 +71,9 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Estados de UI
     const [showResignModal, setShowResignModal] = useState(false);
     const [showDrawModal, setShowDrawModal] = useState(false);
+    const [showDrawOfferModal, setShowDrawOfferModal] = useState(false);
+    const [showReloadWarningModal, setShowReloadWarningModal] = useState(false);
+    const [drawOfferFrom, setDrawOfferFrom] = useState('');
     const [gameResult, setGameResult] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const hasConnectedRef = useRef(false);
@@ -323,8 +326,35 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     }
                     break;
                 case 'game_end':
+                    // Fin del juego (rendición, jaque mate, etc.)
                     setGameStatus('ended');
-                    setGameResult(lastMessage.result);
+                    if (lastMessage.reason === 'resignation') {
+                        const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
+                        setGameResult(`${winnerText} - Tu oponente se rindió`);
+                    } else if (lastMessage.reason === 'checkmate') {
+                        const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
+                        setGameResult(`${winnerText} - Jaque mate`);
+                    } else if (lastMessage.reason === 'draw') {
+                        setGameResult('Empate - Tablas acordadas');
+                    } else {
+                        const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
+                        setGameResult(`${winnerText} - ${lastMessage.reason || 'Partida terminada'}`);
+                    }
+                    break;
+                case 'draw_offer':
+                    // Recibir oferta de tablas
+                    setDrawOfferFrom(lastMessage.from);
+                    setShowDrawOfferModal(true);
+                    break;
+                case 'draw_declined':
+                    // Oferta de tablas rechazada
+                    setErrorMessage('Tu oferta de tablas fue rechazada');
+                    setTimeout(() => setErrorMessage(''), 3000);
+                    break;
+                case 'opponent_disconnected':
+                    // Oponente desconectado
+                    setGameStatus('ended');
+                    setGameResult('Ganaste - Tu oponente se desconectó');
                     break;
                 case 'error':
                     setErrorMessage(lastMessage.message);
@@ -334,7 +364,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     console.log('Mensaje no manejado:', lastMessage.type);
             }
         }
-    }, [lastMessage, handleOpponentMove, calculateCapturedPieces, playerColor]);
+    }, [lastMessage, handleOpponentMove, calculateCapturedPieces, playerColor, user?.username]);
 
     // Inicializar juego cuando se reciben los datos
     useEffect(() => {
@@ -376,6 +406,37 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             });
         }
     }, [moveHistory.length]); // Solo cuando cambia el número de movimientos
+
+    // Protección contra recarga de página
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (gameStatus === 'active' && gameData?.id) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome requiere esto
+                return ''; // Algunos navegadores requieren return
+            }
+        };
+
+        const handleUnload = () => {
+            if (gameStatus === 'active' && gameData?.id && sendMessage) {
+                // Enviar mensaje de rendición automática
+                sendMessage({
+                    type: 'resign',
+                    game_id: gameData.id,
+                    player: playerColor,
+                    reason: 'page_reload'
+                });
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('unload', handleUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('unload', handleUnload);
+        };
+    }, [gameStatus, gameData?.id, playerColor, sendMessage]);
 
     // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
@@ -471,24 +532,47 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         if (sendMessage) {
             sendMessage({
                 type: 'resign',
-                game_id: gameData?.id,
-                player: playerColor
+                game_id: gameData?.id
             });
         }
         setShowResignModal(false);
-        setGameStatus('ended');
-        setGameResult(`${playerColor === 'white' ? 'Negras' : 'Blancas'} ganan por abandono`);
+        // No establecer el resultado aquí, esperar respuesta del servidor
     };
 
     const handleOfferDraw = () => {
         if (sendMessage) {
             sendMessage({
                 type: 'draw_offer',
-                game_id: gameData?.id,
-                player: playerColor
+                game_id: gameData?.id
             });
         }
         setShowDrawModal(false);
+        setErrorMessage('Oferta de tablas enviada');
+        setTimeout(() => setErrorMessage(''), 3000);
+    };
+
+    const handleAcceptDraw = () => {
+        if (sendMessage) {
+            sendMessage({
+                type: 'accept_draw',
+                game_id: gameData?.id
+            });
+        }
+        setShowDrawOfferModal(false);
+        setGameStatus('ended');
+        setGameResult('Empate - Tablas acordadas');
+    };
+
+    const handleDeclineDraw = () => {
+        if (sendMessage) {
+            sendMessage({
+                type: 'decline_draw',
+                game_id: gameData?.id
+            });
+        }
+        setShowDrawOfferModal(false);
+        setErrorMessage('Oferta de tablas rechazada');
+        setTimeout(() => setErrorMessage(''), 3000);
     };
 
     const copyFEN = () => {
@@ -833,6 +917,31 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                         className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"
                     >
                         Cancelar
+                    </button>
+                </div>
+            </Modal>
+
+            {/* Modal para recibir oferta de tablas */}
+            <Modal
+                isOpen={showDrawOfferModal}
+                onClose={() => setShowDrawOfferModal(false)}
+                title="Oferta de Tablas"
+            >
+                <p className="text-gray-600 mb-6">
+                    <strong>{drawOfferFrom}</strong> te ha ofrecido tablas. ¿Qué quieres hacer?
+                </p>
+                <div className="flex space-x-4">
+                    <button
+                        onClick={handleAcceptDraw}
+                        className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
+                    >
+                        Aceptar Tablas
+                    </button>
+                    <button
+                        onClick={handleDeclineDraw}
+                        className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Rechazar
                     </button>
                 </div>
             </Modal>
