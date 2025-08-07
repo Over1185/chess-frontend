@@ -41,7 +41,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Asegurar conexión WebSocket - solo una vez
     useEffect(() => {
         if (user?.token && !hasConnectedRef.current) {
-            console.log('Conectando WebSocket desde ChessBoardOnline');
             connect(WEBSOCKET_URL, user.token);
             hasConnectedRef.current = true;
         }
@@ -160,7 +159,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     fen: gameCopy.fen()
                 };
 
-                console.log('Enviando movimiento:', moveData);
                 sendMessage(moveData);
 
                 // Agregar al historial
@@ -197,7 +195,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
     // Manejar movimiento del oponente
     const handleOpponentMove = useCallback((moveData) => {
-        console.log('Movimiento del oponente recibido:', moveData);
         try {
             const gameCopy = new Chess(chessGameRef.current.fen());
             const move = gameCopy.move({
@@ -238,12 +235,22 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Procesar mensajes del WebSocket
     useEffect(() => {
         if (lastMessage) {
-            console.log('Mensaje WebSocket recibido:', lastMessage);
 
             switch (lastMessage.type) {
-                case 'move':
-                    handleOpponentMove(lastMessage);
+                case 'move': {
+                    // Solo procesar movimientos que no sean del propio jugador
+                    // Verificar si este es nuestro propio movimiento revisando el turno actual
+                    const isOwnMove = (lastMessage.current_turn === 'white' && playerColor === 'black') ||
+                        (lastMessage.current_turn === 'black' && playerColor === 'white');
+
+                    if (isOwnMove) {
+                        console.log('Procesando movimiento del oponente');
+                        handleOpponentMove(lastMessage);
+                    } else {
+                        console.log('Ignorando propio movimiento recibido del servidor');
+                    }
                     break;
+                }
                 case 'game_state':
                     // Actualizar estado completo del juego
                     try {
@@ -270,7 +277,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     console.log('Mensaje no manejado:', lastMessage.type);
             }
         }
-    }, [lastMessage, handleOpponentMove, calculateCapturedPieces]);
+    }, [lastMessage, handleOpponentMove, calculateCapturedPieces, playerColor]);
 
     // Inicializar juego cuando se reciben los datos
     useEffect(() => {

@@ -14,13 +14,20 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
     const [searchTime, setSearchTime] = useState(0);
     const hasConnectedRef = useRef(false);
     const hasNavigatedRef = useRef(false);
+    const navigateRef = useRef(navigate);
+    const handleGameStartRef = useRef(null);
+
+    // Actualizar las refs cuando cambien las funciones
+    useEffect(() => {
+        navigateRef.current = navigate;
+        handleGameStartRef.current = onGameStart;
+    }, [navigate, onGameStart]);
 
     const { connectionStatus, lastMessage, sendMessage, connect } = useWebSocketContext();
 
     // Conectar al WebSocket cuando el componente se monta - solo una vez
     useEffect(() => {
         if (user?.token && !hasConnectedRef.current) {
-            console.log('Conectando WebSocket desde OnlineGameLobby');
             connect(WEBSOCKET_URL, user.token);
             hasConnectedRef.current = true;
         }
@@ -64,13 +71,13 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
                     yourColor: lastMessage.your_color,
                     isPrivate: lastMessage.is_private || false
                 });
-                onGameStart(lastMessage);
+                handleGameStartRef.current?.(lastMessage);
                 // Navegar automáticamente al tablero después de encontrar partida - solo una vez
                 if (!hasNavigatedRef.current) {
                     hasNavigatedRef.current = true;
                     setTimeout(() => {
-                        navigate('/chess-game');
-                    }, 1000); // Pequeño delay para mostrar la animación
+                        navigateRef.current('/chess-game');
+                    }, 1000);
                 }
                 break;
 
@@ -87,7 +94,7 @@ export default function OnlineGameLobby({ user, onGameStart, onBack }) {
 
             default:
         }
-    }, [lastMessage, onGameStart, navigate]);
+    }, [lastMessage]); // Solo lastMessage como dependencia
 
     const startSearch = () => {
         if (connectionStatus !== 'Connected') {

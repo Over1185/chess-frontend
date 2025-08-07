@@ -25,7 +25,6 @@ export const WebSocketProvider = ({ children }) => {
         if (socketRef.current?.readyState === WebSocket.OPEN &&
             currentTokenRef.current === token &&
             urlRef.current === url) {
-            console.log('Ya conectado con el mismo token y URL');
             return;
         }
 
@@ -44,12 +43,10 @@ export const WebSocketProvider = ({ children }) => {
             currentTokenRef.current = token;
             urlRef.current = url;
 
-            console.log('Conectando WebSocket a:', wsUrl);
             const ws = new WebSocket(wsUrl);
             socketRef.current = ws;
 
             ws.onopen = () => {
-                console.log('WebSocket conectado exitosamente');
                 setConnectionStatus('Connected');
                 setSocket(ws);
 
@@ -70,13 +67,11 @@ export const WebSocketProvider = ({ children }) => {
             };
 
             ws.onclose = (event) => {
-                console.log('WebSocket desconectado:', event.code, event.reason);
                 setConnectionStatus('Disconnected');
                 setSocket(null);
 
                 // Solo reconectar automáticamente si no fue un cierre intencional
                 if (event.code !== 1000 && event.code !== 4001 && currentTokenRef.current) {
-                    console.log('Intentando reconexión en 3 segundos...');
                     reconnectTimeoutRef.current = setTimeout(() => {
                         if (currentTokenRef.current && urlRef.current) {
                             connect(urlRef.current, currentTokenRef.current);
@@ -97,7 +92,6 @@ export const WebSocketProvider = ({ children }) => {
     }, []); // Sin dependencias para evitar recreación
 
     const disconnect = useCallback(() => {
-        console.log('Desconectando WebSocket...');
 
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);

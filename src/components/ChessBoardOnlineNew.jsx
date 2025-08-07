@@ -230,7 +230,6 @@ export default function ChessBoardOnlineNew({ gameData, user, onGameEnd }) {
     // Procesar mensajes del WebSocket
     useEffect(() => {
         if (lastMessage) {
-            console.log('Mensaje WebSocket recibido:', lastMessage);
 
             switch (lastMessage.type) {
                 case 'move':
