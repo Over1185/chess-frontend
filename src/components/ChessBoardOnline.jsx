@@ -5,7 +5,49 @@ import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { FaFlag, FaHandshake, FaCopy, FaSpinner } from 'react-icons/fa';
 import Modal from './Modal';
 
+// Importar imágenes de piezas
+import bBishop from '../assets/b_bishop.png';
+import bKing from '../assets/b_king.png';
+import bKnight from '../assets/b_knight.png';
+import bPawn from '../assets/b_pawn.png';
+import bQueen from '../assets/b_queen.png';
+import bRook from '../assets/b_rook.png';
+import wBishop from '../assets/w_bishop.png';
+import wKing from '../assets/w_king.png';
+import wKnight from '../assets/w_knight.png';
+import wPawn from '../assets/w_pawn.png';
+import wQueen from '../assets/w_queen.png';
+import wRook from '../assets/w_rook.png';
+
 const WEBSOCKET_URL = 'ws://localhost:8000/ws';
+
+// Mapeo de piezas a imágenes
+const pieceImages = {
+    // Piezas negras
+    'p': bPawn,
+    'r': bRook,
+    'n': bKnight,
+    'b': bBishop,
+    'q': bQueen,
+    'k': bKing,
+    // Piezas blancas
+    'P': wPawn,
+    'R': wRook,
+    'N': wKnight,
+    'B': wBishop,
+    'Q': wQueen,
+    'K': wKing
+};
+
+// Componente para mostrar una pieza capturada
+const CapturedPiece = ({ piece, size = 24 }) => (
+    <img
+        src={pieceImages[piece]}
+        alt={piece}
+        className="inline-block"
+        style={{ width: size, height: size }}
+    />
+);
 
 export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Usar ref para mantener la instancia del juego a través de renders
@@ -50,8 +92,8 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     // Función para calcular piezas capturadas
     const calculateCapturedPieces = useCallback((gameInstance) => {
         const initialPieces = {
-            'p': 8, 'r': 2, 'n': 2, 'b': 2, 'q': 1, 'k': 1,
-            'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1, 'K': 1
+            'p': 8, 'r': 2, 'n': 2, 'b': 2, 'q': 1, // k se excluye porque no se puede capturar
+            'P': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1  // K se excluye porque no se puede capturar
         };
 
         const currentPieces = {};
@@ -61,7 +103,7 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
         board.forEach(row => {
             row.forEach(square => {
                 if (square) {
-                    const pieceKey = square.color === 'w' ? square.type.toUpperCase() : square.type;
+                    const pieceKey = square.color === 'w' ? square.type.toUpperCase() : square.type.toLowerCase();
                     currentPieces[pieceKey] = (currentPieces[pieceKey] || 0) + 1;
                 }
             });
@@ -77,11 +119,11 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
 
             for (let i = 0; i < capturedCount; i++) {
                 if (piece === piece.toUpperCase()) {
-                    // Pieza blanca capturada
-                    captured.white.push(piece.toLowerCase());
-                } else {
-                    // Pieza negra capturada
+                    // Pieza blanca capturada (las blancas la perdieron, las negras la capturaron)
                     captured.black.push(piece);
+                } else {
+                    // Pieza negra capturada (las negras la perdieron, las blancas la capturaron)
+                    captured.white.push(piece);
                 }
             }
         });
@@ -539,13 +581,13 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                             {/* Piezas capturadas del oponente */}
                             <div className="mb-4">
                                 <p className="text-sm text-gray-600 mb-2">Piezas capturadas:</p>
-                                <div className="flex flex-wrap gap-1">
-                                    {capturedPieces[playerColor === 'white' ? 'black' : 'white'].map((piece, index) => (
-                                        <span key={index} className="text-lg">
-                                            {piece === 'p' ? '♟' : piece === 'r' ? '♜' : piece === 'n' ? '♞' :
-                                                piece === 'b' ? '♝' : piece === 'q' ? '♛' : '♚'}
-                                        </span>
+                                <div className="flex flex-wrap gap-1 min-h-[30px]">
+                                    {capturedPieces[playerColor === 'white' ? 'white' : 'black'].map((piece, index) => (
+                                        <CapturedPiece key={index} piece={piece} size={24} />
                                     ))}
+                                    {capturedPieces[playerColor === 'white' ? 'white' : 'black'].length === 0 && (
+                                        <span className="text-gray-400 text-sm">Ninguna</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -600,13 +642,13 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                             {/* Piezas capturadas del jugador */}
                             <div className="mb-4">
                                 <p className="text-sm text-gray-600 mb-2">Piezas capturadas:</p>
-                                <div className="flex flex-wrap gap-1">
-                                    {capturedPieces[playerColor].map((piece, index) => (
-                                        <span key={index} className="text-lg">
-                                            {piece === 'P' ? '♙' : piece === 'R' ? '♖' : piece === 'N' ? '♘' :
-                                                piece === 'B' ? '♗' : piece === 'Q' ? '♕' : '♔'}
-                                        </span>
+                                <div className="flex flex-wrap gap-1 min-h-[30px]">
+                                    {capturedPieces[playerColor === 'white' ? 'black' : 'white'].map((piece, index) => (
+                                        <CapturedPiece key={index} piece={piece} size={24} />
                                     ))}
+                                    {capturedPieces[playerColor === 'white' ? 'black' : 'white'].length === 0 && (
+                                        <span className="text-gray-400 text-sm">Ninguna</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
