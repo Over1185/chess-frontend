@@ -328,12 +328,17 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     // Fin del juego (rendición, jaque mate, etc.)
                     setGameStatus('ended');
                     if (lastMessage.reason === 'resignation') {
-                        const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
-                        setGameResult(`${winnerText} - Tu oponente se rindió`);
+                        if (lastMessage.resigned_by === user?.username) {
+                            // El usuario actual se rindió
+                            setGameResult('Perdiste - Te rendiste');
+                        } else {
+                            // El oponente se rindió
+                            setGameResult('Ganaste - Tu oponente se rindió');
+                        }
                     } else if (lastMessage.reason === 'checkmate') {
                         const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
                         setGameResult(`${winnerText} - Jaque mate`);
-                    } else if (lastMessage.reason === 'draw') {
+                    } else if (lastMessage.reason === 'draw' || lastMessage.reason === 'mutual_agreement') {
                         setGameResult('Empate - Tablas acordadas');
                     } else {
                         const winnerText = lastMessage.winner === user?.username ? 'Ganaste' : 'Perdiste';
