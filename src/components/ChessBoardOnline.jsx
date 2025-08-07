@@ -72,7 +72,6 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
     const [showResignModal, setShowResignModal] = useState(false);
     const [showDrawModal, setShowDrawModal] = useState(false);
     const [showDrawOfferModal, setShowDrawOfferModal] = useState(false);
-    const [showReloadWarningModal, setShowReloadWarningModal] = useState(false);
     const [drawOfferFrom, setDrawOfferFrom] = useState('');
     const [gameResult, setGameResult] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -881,70 +880,38 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                 isOpen={showResignModal}
                 onClose={() => setShowResignModal(false)}
                 title="Confirmar Rendición"
-            >
-                <p className="text-gray-600 mb-6">¿Estás seguro de que quieres rendirte?</p>
-                <div className="flex space-x-4">
-                    <button
-                        onClick={handleResign}
-                        className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                        Sí, Rendirse
-                    </button>
-                    <button
-                        onClick={() => setShowResignModal(false)}
-                        className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </Modal>
+                message="¿Estás seguro de que quieres rendirte? Esta acción no se puede deshacer."
+                type="warning"
+                onConfirm={handleResign}
+                onCancel={() => setShowResignModal(false)}
+                confirmText="Sí, Rendirse"
+                cancelText="Cancelar"
+            />
 
             <Modal
                 isOpen={showDrawModal}
                 onClose={() => setShowDrawModal(false)}
                 title="Ofrecer Tablas"
-            >
-                <p className="text-gray-600 mb-6">¿Quieres ofrecer tablas a tu oponente?</p>
-                <div className="flex space-x-4">
-                    <button
-                        onClick={handleOfferDraw}
-                        className="flex-1 bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors"
-                    >
-                        Sí, Ofrecer Tablas
-                    </button>
-                    <button
-                        onClick={() => setShowDrawModal(false)}
-                        className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </Modal>
+                message="¿Quieres ofrecer tablas a tu oponente?"
+                type="confirm"
+                onConfirm={handleOfferDraw}
+                onCancel={() => setShowDrawModal(false)}
+                confirmText="Sí, Ofrecer Tablas"
+                cancelText="Cancelar"
+            />
 
             {/* Modal para recibir oferta de tablas */}
             <Modal
                 isOpen={showDrawOfferModal}
                 onClose={() => setShowDrawOfferModal(false)}
                 title="Oferta de Tablas"
-            >
-                <p className="text-gray-600 mb-6">
-                    <strong>{drawOfferFrom}</strong> te ha ofrecido tablas. ¿Qué quieres hacer?
-                </p>
-                <div className="flex space-x-4">
-                    <button
-                        onClick={handleAcceptDraw}
-                        className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                        Aceptar Tablas
-                    </button>
-                    <button
-                        onClick={handleDeclineDraw}
-                        className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                        Rechazar
-                    </button>
-                </div>
-            </Modal>
+                message={`${drawOfferFrom} te ha ofrecido tablas. ¿Qué quieres hacer?`}
+                type="info"
+                onConfirm={handleAcceptDraw}
+                onCancel={handleDeclineDraw}
+                confirmText="Aceptar Tablas"
+                cancelText="Rechazar"
+            />
         </div>
     );
 }
