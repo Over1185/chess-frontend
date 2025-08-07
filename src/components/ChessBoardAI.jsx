@@ -78,6 +78,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
     // Estados para estilos de casillas (jaque, etc.)
     const [customSquareStyles, setCustomSquareStyles] = useState({});
 
+    // Estado para dificultad de Stockfish
+    const [difficulty, setDifficulty] = useState('intermedio');
+    const [difficulties, setDifficulties] = useState({});
+
     // Configuración del jugador (siempre jugará como blancas contra Stockfish)
     const playerColor = 'white';
     const aiColor = 'black';
@@ -235,6 +239,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             console.log('Enviando historial a Stockfish:', history);
             console.log('FEN actual:', chessGameRef.current.fen());
             console.log('Número total de movimientos:', history.length);
+            console.log('Dificultad seleccionada:', difficulty);
             console.log('================================');
 
             const response = await fetch('http://localhost:8000/api/juga-stockfish', {
@@ -242,7 +247,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(history),
+                body: JSON.stringify({
+                    movimientos: history,
+                    dificultad: difficulty
+                }),
                 signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
             });
 
@@ -312,7 +320,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd]);
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty]);
 
     // Función para hacer un movimiento del jugador
     const makeMove = useCallback((from, to, promotion = 'q') => {
@@ -524,6 +532,22 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         setTimeout(() => setErrorMessage(''), 2000);
     };
 
+    // Cargar dificultades disponibles al montar el componente
+    useEffect(() => {
+        const loadDifficulties = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/api/stockfish-dificultades');
+                if (response.ok) {
+                    const data = await response.json();
+                    setDifficulties(data.dificultades);
+                }
+            } catch (error) {
+                console.error('Error cargando dificultades:', error);
+            }
+        };
+        loadDifficulties();
+    }, []);
+
     // Auto-scroll del historial de movimientos
     useEffect(() => {
         if (movesContainerRef.current) {
@@ -616,6 +640,45 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     {errorMessage && (
                         <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
                             <p className="text-red-700">{errorMessage}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Selector de dificultad */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-2xl shadow-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                        <FaRobot className="mr-2 text-purple-600" />
+                        Dificultad de Stockfish
+                    </h3>
+
+                    <div className="mb-3">
+                        <select
+                            value={difficulty}
+                            onChange={(e) => setDifficulty(e.target.value)}
+                            disabled={gameStatus === 'active' && moveHistory.length > 0}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                            {Object.entries(difficulties).map(([key, config]) => (
+                                <option key={key} value={key}>
+                                    {key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')} (~{config.elo} ELO)
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {difficulties[difficulty] && (
+                        <div className="text-sm text-gray-600 bg-white p-3 rounded-lg border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-purple-700">ELO Aproximado:</span>
+                                <span className="font-bold text-purple-800">~{difficulties[difficulty].elo}</span>
+                            </div>
+                            <p className="text-gray-700 mb-2">{difficulties[difficulty].descripcion}</p>
+                            {gameStatus === 'active' && moveHistory.length > 0 && (
+                                <div className="flex items-center text-orange-600 text-xs mt-2 p-2 bg-orange-50 rounded border border-orange-200">
+                                    <span className="mr-1">⚠️</span>
+                                    <span>La dificultad solo se puede cambiar al iniciar una nueva partida</span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
