@@ -247,11 +247,10 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
             switch (lastMessage.type) {
                 case 'move': {
                     // Solo procesar movimientos que no sean del propio jugador
-                    // Verificar si este es nuestro propio movimiento revisando el turno actual
-                    const isOwnMove = (lastMessage.current_turn === 'white' && playerColor === 'black') ||
-                        (lastMessage.current_turn === 'black' && playerColor === 'white');
+                    // Si después del movimiento es nuestro turno, significa que el oponente acaba de mover
+                    const isOpponentMove = (lastMessage.current_turn === playerColor);
 
-                    if (isOwnMove) {
+                    if (isOpponentMove) {
                         console.log('Procesando movimiento del oponente');
                         handleOpponentMove(lastMessage);
                     } else {
