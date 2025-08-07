@@ -226,7 +226,16 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Función para hacer que Stockfish juegue
     const makeStockfishMove = useCallback(async () => {
-        if (gameStatus !== 'active') return;
+        console.log('=== STOCKFISH MOVE CALLED ===');
+        console.log('Game status:', gameStatus);
+        console.log('Player color:', playerColor);
+        console.log('Current turn:', currentTurn);
+        console.log('============================');
+
+        if (gameStatus !== 'active') {
+            console.log('Game not active, returning...');
+            return;
+        }
 
         setIsThinking(true);
 
@@ -527,11 +536,11 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         setPromotionMove(null);
         setShowPromotionModal(false);
 
-        // Si el jugador eligió negras, hacer que Stockfish juegue primero
-        if (playerColor === 'black') {
-            setTimeout(() => makeStockfishMove(), 500);
-        }
-    }, [playerColor, makeStockfishMove]);
+        console.log('=== NEW GAME ===');
+        console.log('Player color:', playerColor);
+        console.log('Game reset completed');
+        console.log('================');
+    }, [playerColor]);
 
     // Función para copiar FEN
     const copyFEN = () => {
@@ -555,6 +564,21 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         };
         loadDifficulties();
     }, []);
+
+    // useEffect para hacer que Stockfish juegue cuando es su turno al inicio
+    useEffect(() => {
+        // Si el jugador eligió negras, es una nueva partida (sin movimientos), 
+        // y es el turno de las blancas (Stockfish), hacer que juegue
+        if (playerColor === 'black' &&
+            gameStatus === 'active' &&
+            currentTurn === 'white' &&
+            moveHistory.length === 0 &&
+            !isThinking) {
+            console.log('=== AUTO STOCKFISH MOVE ===');
+            console.log('Conditions met for Stockfish first move');
+            setTimeout(() => makeStockfishMove(), 500);
+        }
+    }, [playerColor, gameStatus, currentTurn, moveHistory.length, isThinking, makeStockfishMove]);
 
     // Auto-scroll del historial de movimientos
     useEffect(() => {
