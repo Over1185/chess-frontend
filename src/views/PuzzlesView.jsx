@@ -21,6 +21,7 @@ export default function PuzzlesView() {
     const [puzzleComplete, setPuzzleComplete] = useState(false);
     const [feedback, setFeedback] = useState("");
     const [optionSquares, setOptionSquares] = useState({});
+    const [moveFrom, setMoveFrom] = useState('');
     const gameRef = useRef(null);
 
     useEffect(() => {
@@ -109,6 +110,7 @@ export default function PuzzlesView() {
             setPuzzleComplete(false);
             setFeedback("");
             setOptionSquares({});
+            setMoveFrom(''); // Resetear selección
 
             gameRef.current = newGame;
 
@@ -212,31 +214,54 @@ export default function PuzzlesView() {
             return;
         }
 
-        const moves = gameCopy.moves({
-            square: square,
-            verbose: true
-        });
+        // Si no hay casilla seleccionada, seleccionar esta casilla
+        if (!moveFrom) {
+            const moves = gameCopy.moves({
+                square: square,
+                verbose: true
+            });
 
-        if (moves.length === 0) {
-            setOptionSquares({});
-            return;
-        }
+            // Solo permitir seleccionar casillas con movimientos válidos
+            if (moves.length === 0) {
+                setOptionSquares({});
+                return;
+            }
 
-        const newSquares = {};
-        moves.forEach(move => {
-            newSquares[move.to] = {
-                background: move.captured
-                    ? 'radial-gradient(circle, rgba(255,0,0,.4) 85%, transparent 85%)'
-                    : 'radial-gradient(circle, rgba(0,255,0,.4) 85%, transparent 85%)',
-                borderRadius: '50%'
+            // Mostrar movimientos posibles
+            const newSquares = {};
+            moves.forEach(move => {
+                newSquares[move.to] = {
+                    background: move.captured
+                        ? 'radial-gradient(circle, rgba(255,0,0,.4) 85%, transparent 85%)'
+                        : 'radial-gradient(circle, rgba(0,255,0,.4) 85%, transparent 85%)',
+                    borderRadius: '50%'
+                };
+            });
+
+            // Resaltar casilla seleccionada
+            newSquares[square] = {
+                backgroundColor: 'rgba(255, 255, 0, 0.4)'
             };
-        });
 
-        newSquares[square] = {
-            backgroundColor: 'rgba(255, 255, 0, 0.4)'
-        };
+            setOptionSquares(newSquares);
+            setMoveFrom(square);
+        }
+        // Si hay una casilla seleccionada
+        else {
+            // Si se hace click en la misma casilla, deseleccionar
+            if (square === moveFrom) {
+                setMoveFrom('');
+                setOptionSquares({});
+                return;
+            }
 
-        setOptionSquares(newSquares);
+            // Intentar hacer el movimiento
+            const moveResult = onPieceDrop({ sourceSquare: moveFrom, targetSquare: square });
+
+            // Limpiar selección independientemente del resultado
+            setMoveFrom('');
+            setOptionSquares({});
+        }
     };
 
     const resetPuzzle = () => {
@@ -388,11 +413,6 @@ export default function PuzzlesView() {
                         <div className="lg:col-span-2">
                             <div className="bg-white rounded-2xl shadow-xl p-6">
                                 <div className="aspect-square max-w-full mx-auto">
-                                    {/* Debug info */}
-                                    <div className="mb-2 text-sm text-gray-600">
-                                        <p>Current Position: {gamePosition}</p>
-                                        <p>Puzzle ID: {currentPuzzle?.id}</p>
-                                    </div>
                                     <Chessboard
                                         options={{
                                             position: gamePosition,
