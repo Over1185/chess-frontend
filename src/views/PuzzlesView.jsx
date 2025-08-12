@@ -27,6 +27,10 @@ export default function PuzzlesView() {
         fetchCategories();
     }, []);
 
+    useEffect(() => {
+        console.log("GamePosition cambió a:", gamePosition);
+    }, [gamePosition]);
+
     const fetchCategories = async () => {
         try {
             const response = await fetch("http://localhost:8000/puzzles/categories");
@@ -91,29 +95,40 @@ export default function PuzzlesView() {
             return;
         }
 
-        const newGame = new Chess();
-        if (!newGame.load(puzzle.fen)) {
-            console.error("FEN inválido:", puzzle.fen);
+        console.log("Cargando puzzle:", puzzle.id, "con FEN:", puzzle.fen);
+
+        try {
+            const newGame = new Chess();
+            newGame.load(puzzle.fen);
+
+            setCurrentPuzzle(puzzle);
+            setChessGame(newGame);
+            setGamePosition(puzzle.fen); // Establecer la posición FEN directamente
+            setMoves(puzzle.moves ? puzzle.moves.split(' ') : []);
+            setCurrentMoveIndex(0);
+            setPuzzleComplete(false);
+            setFeedback("");
+            setOptionSquares({});
+
+            gameRef.current = newGame;
+
+            console.log("Estados actualizados - GamePosition:", puzzle.fen);
+        } catch (error) {
+            console.error("Error al cargar el FEN:", puzzle.fen, error.message);
             return;
         }
-
-        setCurrentPuzzle(puzzle);
-        setChessGame(newGame);
-        setGamePosition(puzzle.fen);
-        setMoves(puzzle.moves ? puzzle.moves.split(' ') : []);
-        setCurrentMoveIndex(0);
-        setPuzzleComplete(false);
-        setFeedback("");
-        setOptionSquares({});
-
-        gameRef.current = newGame;
     };
 
-    const onPieceDrop = (sourceSquare, targetSquare) => {
+    const onPieceDrop = ({ sourceSquare, targetSquare }) => {
         if (puzzleComplete) return false;
 
         const gameCopy = new Chess();
-        gameCopy.load(gameRef.current.fen());
+        try {
+            gameCopy.load(gameRef.current.fen());
+        } catch (error) {
+            console.error("Error cargando posición actual:", error);
+            return false;
+        }
 
         try {
             const move = gameCopy.move({
@@ -186,11 +201,16 @@ export default function PuzzlesView() {
         }
     };
 
-    const onSquareClick = (square) => {
+    const onSquareClick = ({ square, piece }) => {
         if (puzzleComplete) return;
 
         const gameCopy = new Chess();
-        gameCopy.load(gameRef.current.fen());
+        try {
+            gameCopy.load(gameRef.current.fen());
+        } catch (error) {
+            console.error("Error loading FEN in onSquareClick:", error);
+            return;
+        }
 
         const moves = gameCopy.moves({
             square: square,
@@ -368,14 +388,23 @@ export default function PuzzlesView() {
                         <div className="lg:col-span-2">
                             <div className="bg-white rounded-2xl shadow-xl p-6">
                                 <div className="aspect-square max-w-full mx-auto">
+                                    {/* Debug info */}
+                                    <div className="mb-2 text-sm text-gray-600">
+                                        <p>Current Position: {gamePosition}</p>
+                                        <p>Puzzle ID: {currentPuzzle?.id}</p>
+                                    </div>
                                     <Chessboard
-                                        id="puzzle-board"
-                                        position={gamePosition}
-                                        onPieceDrop={onPieceDrop}
-                                        onSquareClick={onSquareClick}
-                                        customSquareStyles={optionSquares}
-                                        boardOrientation={currentPuzzle?.turn === 'b' ? 'black' : 'white'}
-                                        animationDuration={200}
+                                        options={{
+                                            position: gamePosition,
+                                            onPieceDrop,
+                                            onSquareClick,
+                                            boardOrientation: currentPuzzle?.turn === 'b' ? 'black' : 'white',
+                                            squareStyles: optionSquares,
+                                            allowDragging: !puzzleComplete,
+                                            id: `puzzle-board-${currentPuzzle?.id || 'default'}`,
+                                            showNotation: true,
+                                            animationDurationInMs: 200
+                                        }}
                                     />
                                 </div>
                             </div>
