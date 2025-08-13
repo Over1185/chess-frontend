@@ -158,6 +158,51 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         setCustomSquareStyles(newStyles);
     }, [optionSquares]);
 
+    // Función para guardar partida contra IA
+    const saveGameToDatabase = useCallback(async (result) => {
+        try {
+            const moves = chessGameRef.current.history();
+            let resultCode, winner;
+
+            if (result === 'Ganaste!') {
+                resultCode = playerColor === 'white' ? '1-0' : '0-1';
+                winner = user.username;
+            } else if (result === 'Gana Stockfish') {
+                resultCode = playerColor === 'white' ? '0-1' : '1-0';
+                winner = 'Stockfish';
+            } else {
+                resultCode = '1/2-1/2';
+                winner = 'draw';
+            }
+
+            const gameData = {
+                white_player: playerColor === 'white' ? user.username : 'Stockfish',
+                black_player: playerColor === 'black' ? user.username : 'Stockfish',
+                moves: moves,
+                result_code: resultCode,
+                winner: winner,
+                vs_ai: true  // Indica que es una partida contra la IA
+            };
+
+            const response = await fetch('http://localhost:8000/guardar-partida', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(gameData)
+            });
+
+            if (response.ok) {
+                console.log('Partida guardada exitosamente');
+            } else {
+                console.error('Error al guardar partida:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error guardando partida:', error);
+        }
+    }, [user.username, playerColor]);
+
     // Función para detectar y manejar promoción
     const detectPromotion = useCallback((from, to) => {
         // Verificar si es una promoción potencial
@@ -306,6 +351,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                         }
                         setGameStatus('ended');
                         setGameResult(result);
+
+                        // Guardar partida en la base de datos
+                        saveGameToDatabase(result);
+
                         if (onGameEnd) onGameEnd(result);
                     }
                 } else {
@@ -331,7 +380,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty]);
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty, currentTurn, playerColor, saveGameToDatabase]);
 
     // Función para hacer un movimiento del jugador
     const makeMove = useCallback((from, to, promotion = 'q') => {
@@ -383,6 +432,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     }
                     setGameStatus('ended');
                     setGameResult(result);
+
+                    // Guardar partida en la base de datos
+                    saveGameToDatabase(result);
+
                     if (onGameEnd) onGameEnd(result);
                 } else {
                     // Hacer que Stockfish juegue después de un pequeño delay
@@ -397,7 +450,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             setTimeout(() => setErrorMessage(''), 2000);
         }
         return false;
-    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd, makeStockfishMove]);
+    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd, makeStockfishMove, saveGameToDatabase]);
 
     // Función para manejar selección de pieza de promoción
     const handlePromotionSelect = useCallback((selectedPiece) => {
@@ -518,9 +571,14 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Funciones de control del juego
     const handleResign = () => {
+        const result = 'Gana Stockfish';
         setGameStatus('ended');
         setGameResult('Gana Stockfish - Te rendiste');
         setShowResignModal(false);
+
+        // Guardar partida en la base de datos
+        saveGameToDatabase(result);
+
         if (onGameEnd) onGameEnd('Gana Stockfish - Te rendiste');
     };
 
