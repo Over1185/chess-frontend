@@ -266,6 +266,18 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                 // Actualizar estilos de casillas (jaque, etc.)
                 updateSquareStyles(gameCopy);
 
+                // Verificar fin del juego
+                let gameStatus = "active";
+                if (gameCopy.isGameOver()) {
+                    if (gameCopy.isCheckmate()) {
+                        gameStatus = "checkmate";
+                    } else if (gameCopy.isStalemate()) {
+                        gameStatus = "stalemate";
+                    } else {
+                        gameStatus = "draw";
+                    }
+                }
+
                 // Enviar movimiento al servidor
                 const moveData = {
                     type: 'move',
@@ -274,7 +286,8 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                     to,
                     promotion: move.promotion || null,
                     san: move.san,
-                    fen: gameCopy.fen()
+                    fen: gameCopy.fen(),
+                    game_status: gameStatus
                 };
 
                 const sendSuccess = sendMessage(moveData);
@@ -296,10 +309,10 @@ export default function ChessBoardOnline({ gameData, user, onGameEnd }) {
                 setMoveFrom('');
                 setOptionSquares({});
 
-                // Verificar fin del juego
-                if (gameCopy.isGameOver()) {
+                // Actualizar estado local si el juego terminó
+                if (gameStatus !== "active") {
                     let result = 'Empate';
-                    if (gameCopy.isCheckmate()) {
+                    if (gameStatus === "checkmate") {
                         result = gameCopy.turn() === 'w' ? 'Ganan las negras' : 'Ganan las blancas';
                     }
                     setGameStatus('ended');

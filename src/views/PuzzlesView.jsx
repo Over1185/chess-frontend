@@ -3,8 +3,9 @@ import { FaPuzzlePiece, FaArrowLeft, FaCalendarAlt, FaStar, FaCrown, FaFire, FaC
 import { useNavigate } from "react-router-dom";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
+import { authFetch } from "../utils/auth";
 
-export default function PuzzlesView() {
+export default function PuzzlesView({ user }) {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,6 +23,8 @@ export default function PuzzlesView() {
     const [feedback, setFeedback] = useState("");
     const [optionSquares, setOptionSquares] = useState({});
     const [moveFrom, setMoveFrom] = useState('');
+    const [puzzleStartTime, setPuzzleStartTime] = useState(null);
+    const [currentPuzzleId, setCurrentPuzzleId] = useState(null);
     const gameRef = useRef(null);
 
     useEffect(() => {
@@ -41,6 +44,37 @@ export default function PuzzlesView() {
             console.error("Error fetching categories:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const registrarResolucionPuzzle = async (puzzleId, correcto, tiempo = 0) => {
+        if (!user?.username) {
+            console.warn("No hay usuario logueado para registrar resolución de puzzle");
+            return;
+        }
+
+        try {
+            const response = await authFetch("/puzzles/resolver-puzzle", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    puzzle_id: puzzleId,
+                    username: user.username,
+                    correcto: correcto,
+                    tiempo: tiempo
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Resolución de puzzle registrada:", data);
+            } else {
+                console.error("Error registrando resolución de puzzle:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error enviando resolución de puzzle:", error);
         }
     };
 
@@ -114,6 +148,10 @@ export default function PuzzlesView() {
             setPuzzleComplete(false);
             setFeedback("");
             setOptionSquares({});
+
+            // Establecer tiempo de inicio y ID del puzzle para estadísticas
+            setPuzzleStartTime(Date.now());
+            setCurrentPuzzleId(puzzle.id);
             setMoveFrom(''); // Resetear selección
 
             gameRef.current = newGame;
@@ -167,6 +205,12 @@ export default function PuzzlesView() {
                 if (nextMoveIndex >= moves.length) {
                     setPuzzleComplete(true);
                     setFeedback("¡Puzzle completado!");
+
+                    // Calcular tiempo transcurrido y registrar resolución
+                    const tiempoTranscurrido = puzzleStartTime ? Math.floor((Date.now() - puzzleStartTime) / 1000) : 0;
+                    if (currentPuzzleId) {
+                        registrarResolucionPuzzle(currentPuzzleId, true, tiempoTranscurrido);
+                    }
                 } else {
                     // Hacer el movimiento del oponente después de un breve delay
                     setTimeout(() => {

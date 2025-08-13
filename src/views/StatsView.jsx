@@ -1,22 +1,23 @@
 import { FaChartBar, FaTrophy, FaUsers, FaPuzzlePiece, FaGamepad, FaClock, FaSpinner } from "react-icons/fa";
-import { useState, useEffect } from "react";
-import { authFetch } from "../utils/auth";
+import { useState, useEffect, useCallback } from "react";
 
 export default function StatsView({ user }) {
     const [estadisticas, setEstadisticas] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if (user?.username) {
-            obtenerEstadisticas();
-        }
-    }, [user]);
-
-    const obtenerEstadisticas = async () => {
+    const obtenerEstadisticas = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await authFetch(`/estadisticas/${user.username}`);
+            setError(null);
+
+            // Para la ruta de estadísticas, no necesitamos autenticación
+            const response = await fetch(`http://localhost:8000/estadisticas/${user.username}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
 
             if (!response.ok) {
                 throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -30,7 +31,13 @@ export default function StatsView({ user }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user.username]);
+
+    useEffect(() => {
+        if (user?.username) {
+            obtenerEstadisticas();
+        }
+    }, [user, obtenerEstadisticas]);
 
     if (loading) {
         return (
