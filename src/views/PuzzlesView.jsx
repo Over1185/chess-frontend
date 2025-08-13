@@ -102,11 +102,15 @@ export default function PuzzlesView() {
             const newGame = new Chess();
             newGame.load(puzzle.fen);
 
+            const movesArray = puzzle.moves ? puzzle.moves.split(' ') : [];
+
+            // El usuario debe hacer TODOS los movimientos de la solución
+            // No aplicamos ningún movimiento automáticamente al inicio
             setCurrentPuzzle(puzzle);
             setChessGame(newGame);
-            setGamePosition(puzzle.fen); // Establecer la posición FEN directamente
-            setMoves(puzzle.moves ? puzzle.moves.split(' ') : []);
-            setCurrentMoveIndex(0);
+            setGamePosition(puzzle.fen); // Usar la FEN original
+            setMoves(movesArray);
+            setCurrentMoveIndex(0); // Empezar desde el primer movimiento
             setPuzzleComplete(false);
             setFeedback("");
             setOptionSquares({});
@@ -115,6 +119,8 @@ export default function PuzzlesView() {
             gameRef.current = newGame;
 
             console.log("Estados actualizados - GamePosition:", puzzle.fen);
+            console.log("Moves:", movesArray);
+            console.log("Starting index: 0 (usuario hace primer movimiento)");
         } catch (error) {
             console.error("Error al cargar el FEN:", puzzle.fen, error.message);
             return;
@@ -144,20 +150,27 @@ export default function PuzzlesView() {
             const moveString = `${sourceSquare}${targetSquare}`;
             const expectedMove = moves[currentMoveIndex];
 
+            console.log("=== DEBUG MOVES ===");
+            console.log("Movimiento realizado:", moveString);
+            console.log("Movimiento esperado:", expectedMove);
+            console.log("Índice actual:", currentMoveIndex);
+            console.log("Todos los moves:", moves);
+            console.log("==================");
+
             if (moveString === expectedMove || `${sourceSquare}${targetSquare}q` === expectedMove) {
                 gameRef.current = gameCopy;
                 setGamePosition(gameCopy.fen());
-                setCurrentMoveIndex(currentMoveIndex + 1);
+                const nextMoveIndex = currentMoveIndex + 1;
+                setCurrentMoveIndex(nextMoveIndex);
                 setFeedback("¡Movimiento correcto!");
 
-                if (currentMoveIndex + 1 >= moves.length) {
+                if (nextMoveIndex >= moves.length) {
                     setPuzzleComplete(true);
                     setFeedback("¡Puzzle completado!");
                 } else {
+                    // Hacer el movimiento del oponente después de un breve delay
                     setTimeout(() => {
-                        if (currentMoveIndex + 1 < moves.length) {
-                            makeOpponentMove();
-                        }
+                        makeOpponentMove(nextMoveIndex);
                     }, 500);
                 }
 
@@ -173,11 +186,16 @@ export default function PuzzlesView() {
         }
     };
 
-    const makeOpponentMove = () => {
-        if (currentMoveIndex + 1 >= moves.length) return;
+    const makeOpponentMove = (moveIndex) => {
+        if (moveIndex >= moves.length) return;
 
-        const opponentMove = moves[currentMoveIndex + 1];
+        const opponentMove = moves[moveIndex];
         if (!opponentMove) return;
+
+        console.log("=== OPPONENT MOVE ===");
+        console.log("Movimiento del oponente:", opponentMove);
+        console.log("Índice:", moveIndex);
+        console.log("====================");
 
         const gameCopy = new Chess();
         gameCopy.load(gameRef.current.fen());
@@ -196,7 +214,10 @@ export default function PuzzlesView() {
             if (move) {
                 gameRef.current = gameCopy;
                 setGamePosition(gameCopy.fen());
-                setCurrentMoveIndex(currentMoveIndex + 2);
+                setCurrentMoveIndex(moveIndex + 1);
+
+                console.log("Movimiento del oponente aplicado:", opponentMove);
+                console.log("Nueva posición:", gameCopy.fen());
             }
         } catch (error) {
             console.error("Error making opponent move:", error);
