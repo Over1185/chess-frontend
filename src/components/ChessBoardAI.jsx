@@ -299,7 +299,10 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     if (chessGameRef.current.isGameOver()) {
                         let result = 'Empate';
                         if (chessGameRef.current.isCheckmate()) {
-                            result = chessGameRef.current.turn() === 'w' ? 'Ganaste!' : 'Gana Stockfish';
+                            // turn() devuelve quien debe mover, que es quien está en jaque mate
+                            // Si es turno de blancas (w), las blancas están en jaque mate -> gana Stockfish
+                            // Si es turno de negras (b), las negras están en jaque mate -> gana el jugador
+                            result = chessGameRef.current.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
                         }
                         setGameStatus('ended');
                         setGameResult(result);
@@ -373,6 +376,9 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 if (chessGameRef.current.isGameOver()) {
                     let result = 'Empate';
                     if (chessGameRef.current.isCheckmate()) {
+                        // turn() devuelve quien debe mover, que es quien está en jaque mate
+                        // Si es turno de blancas (w), las blancas están en jaque mate -> gana Stockfish
+                        // Si es turno de negras (b), las negras están en jaque mate -> gana el jugador
                         result = chessGameRef.current.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
                     }
                     setGameStatus('ended');
