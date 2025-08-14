@@ -72,6 +72,35 @@ export default function GameReplayModal({
         };
     }, [isOpen, gameData, initializeGame, playInterval]);
 
+    // Función para actualizar estilos de casillas (último movimiento)
+    const updateSquareStyles = useCallback((moveIndex) => {
+        if (moveIndex === 0 || !moves[moveIndex - 1]) {
+            setSquareStyles({});
+            return;
+        }
+
+        try {
+            const game = new Chess();
+            // Aplicar movimientos hasta el anterior
+            for (let i = 0; i < moveIndex - 1; i++) {
+                game.move(moves[i]);
+            }
+
+            // Hacer el último movimiento para obtener la información
+            const lastMove = game.move(moves[moveIndex - 1]);
+
+            if (lastMove) {
+                setSquareStyles({
+                    [lastMove.from]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
+                    [lastMove.to]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' }
+                });
+            }
+        } catch (error) {
+            console.error('Error actualizando estilos:', error);
+            setSquareStyles({});
+        }
+    }, [moves]);
+
     // Función para ir a un movimiento específico
     const goToMove = useCallback((moveIndex) => {
         if (!moves.length) return;
@@ -102,35 +131,6 @@ export default function GameReplayModal({
             setCurrentAnalysis(null);
         }
     }, [moves, analysis, updateSquareStyles]);
-
-    // Función para actualizar estilos de casillas (último movimiento)
-    const updateSquareStyles = useCallback((moveIndex) => {
-        if (moveIndex === 0 || !moves[moveIndex - 1]) {
-            setSquareStyles({});
-            return;
-        }
-
-        try {
-            const game = new Chess();
-            // Aplicar movimientos hasta el anterior
-            for (let i = 0; i < moveIndex - 1; i++) {
-                game.move(moves[i]);
-            }
-
-            // Hacer el último movimiento para obtener la información
-            const lastMove = game.move(moves[moveIndex - 1]);
-
-            if (lastMove) {
-                setSquareStyles({
-                    [lastMove.from]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' },
-                    [lastMove.to]: { backgroundColor: 'rgba(255, 255, 0, 0.4)' }
-                });
-            }
-        } catch (error) {
-            console.error('Error actualizando estilos:', error);
-            setSquareStyles({});
-        }
-    }, [moves]);
 
     // Funciones de navegación
     const goToStart = () => goToMove(0);
