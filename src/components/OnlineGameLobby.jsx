@@ -221,20 +221,6 @@ export default function OnlineGameLobby({ user, onGameStart }) {
                     </div>
                 </div>
 
-                {/* Información del usuario */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="font-semibold text-gray-800">{user?.username}</p>
-                            <p className="text-sm text-gray-500">Rating: {user?.rating || 1200}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-sm text-gray-500">Tipo</p>
-                            <p className="font-medium capitalize">{user?.type}</p>
-                        </div>
-                    </div>
-                </div>
-
                 {isSearching ? (
                     // Estado de búsqueda
                     <div className="text-center">
@@ -279,7 +265,7 @@ export default function OnlineGameLobby({ user, onGameStart }) {
                 {/* Información adicional */}
                 <div className="mt-6 text-center">
                     <p className="text-xs text-gray-500">
-                        Te emparejaremos con jugadores de rating similar (±200 puntos)
+                        Te emparejaremos con jugadores de rating similar
                     </p>
                 </div>
             </div>
