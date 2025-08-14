@@ -1,5 +1,6 @@
-import { FaChartBar, FaUsers, FaTrophy, FaPuzzlePiece, FaGamepad, FaClock, FaSpinner, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaChartBar, FaTrophy, FaPuzzlePiece, FaGamepad, FaClock, FaSpinner, FaChevronLeft, FaChevronRight, FaEye, FaUsers } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
+import GameReplayModal from "../components/GameReplayModal";
 
 export default function StatsView({ user }) {
     const [estadisticas, setEstadisticas] = useState(null);
@@ -9,6 +10,41 @@ export default function StatsView({ user }) {
     const [currentAchievementPage, setCurrentAchievementPage] = useState(1);
     const gamesPerPage = 6;
     const achievementsPerPage = 4;
+
+    // Estados para el modal de replay
+    const [showReplayModal, setShowReplayModal] = useState(false);
+    const [selectedGame, setSelectedGame] = useState(null);
+
+    // Función para manejar la visualización de una partida
+    const handleViewGame = useCallback(async (partida) => {
+        try {
+            // Obtener los datos completos de la partida del backend
+            const response = await fetch(`http://localhost:8000/games/${partida.id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const gameData = await response.json();
+                setSelectedGame(gameData);
+                setShowReplayModal(true);
+            } else {
+                console.error('Error obteniendo datos de la partida:', response.statusText);
+                alert('Error al cargar los datos de la partida');
+            }
+        } catch (error) {
+            console.error('Error cargando partida:', error);
+            alert('Error al cargar la partida');
+        }
+    }, []);
+
+    // Función para cerrar el modal
+    const handleCloseModal = useCallback(() => {
+        setShowReplayModal(false);
+        setSelectedGame(null);
+    }, []);
 
     const obtenerEstadisticas = useCallback(async () => {
         try {
@@ -306,6 +342,7 @@ export default function StatsView({ user }) {
                                                     <th className="pb-2 text-gray-600">Color</th>
                                                     <th className="pb-2 text-gray-600">Resultado</th>
                                                     <th className="pb-2 text-gray-600">Fecha</th>
+                                                    <th className="pb-2 text-gray-600">Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -326,6 +363,16 @@ export default function StatsView({ user }) {
                                                             </span>
                                                         </td>
                                                         <td className="py-3 text-gray-600">{partida.fecha || 'Sin fecha'}</td>
+                                                        <td className="py-3">
+                                                            <button
+                                                                onClick={() => handleViewGame(partida)}
+                                                                className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                                                                title="Ver replay de la partida"
+                                                            >
+                                                                <FaEye className="w-3 h-3" />
+                                                                <span>Ver</span>
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -390,6 +437,14 @@ export default function StatsView({ user }) {
                     </div>
                 )}
             </div>
+
+            {/* Modal de replay de partida */}
+            <GameReplayModal
+                isOpen={showReplayModal}
+                onClose={handleCloseModal}
+                gameData={selectedGame}
+                playerUsername={user?.username}
+            />
         </div>
     );
 }
