@@ -335,9 +335,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                         let result = 'Empate';
                         if (chessGameRef.current.isCheckmate()) {
                             // turn() devuelve quien debe mover, que es quien está en jaque mate
-                            // Si es turno de blancas (w), las blancas están en jaque mate -> gana Stockfish
-                            // Si es turno de negras (b), las negras están en jaque mate -> gana el jugador
-                            result = chessGameRef.current.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
+                            const colorInCheckmate = chessGameRef.current.turn();
+                            const playerColorShort = playerColor === 'white' ? 'w' : 'b';
+
+                            // Si el color en jaque mate es el del jugador, gana Stockfish
+                            // Si el color en jaque mate es el de Stockfish, gana el jugador
+                            result = colorInCheckmate === playerColorShort ? 'Gana Stockfish' : 'Ganaste!';
                         }
                         setGameStatus('ended');
                         setGameResult(result);
@@ -370,7 +373,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty, saveGameToDatabase]);
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty, saveGameToDatabase, playerColor]);
 
     // Función para hacer un movimiento del jugador
     const makeMove = useCallback((from, to, promotion = 'q') => {
@@ -421,9 +424,12 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                     let result = 'Empate';
                     if (chessGameRef.current.isCheckmate()) {
                         // turn() devuelve quien debe mover, que es quien está en jaque mate
-                        // Si es turno de blancas (w), las blancas están en jaque mate -> gana Stockfish
-                        // Si es turno de negras (b), las negras están en jaque mate -> gana el jugador
-                        result = chessGameRef.current.turn() === 'w' ? 'Gana Stockfish' : 'Ganaste!';
+                        const colorInCheckmate = chessGameRef.current.turn();
+                        const playerColorShort = playerColor === 'white' ? 'w' : 'b';
+
+                        // Si el color en jaque mate es el del jugador, gana Stockfish
+                        // Si el color en jaque mate es el de Stockfish, gana el jugador
+                        result = colorInCheckmate === playerColorShort ? 'Gana Stockfish' : 'Ganaste!';
                     }
                     setGameStatus('ended');
                     setGameResult(result);
@@ -445,7 +451,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             setTimeout(() => setErrorMessage(''), 2000);
         }
         return false;
-    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd, makeStockfishMove, saveGameToDatabase]);
+    }, [isPlayerTurn, calculateCapturedPieces, updateSquareStyles, onGameEnd, makeStockfishMove, saveGameToDatabase, playerColor]);
 
     // Función para manejar selección de pieza de promoción
     const handlePromotionSelect = useCallback((selectedPiece) => {
