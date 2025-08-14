@@ -1,10 +1,12 @@
-import { FaChartBar, FaTrophy, FaUsers, FaPuzzlePiece, FaGamepad, FaClock, FaSpinner } from "react-icons/fa";
+import { FaChartBar, FaTrophy, FaUsers, FaPuzzlePiece, FaGamepad, FaClock, FaSpinner, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useState, useEffect, useCallback } from "react";
 
 export default function StatsView({ user }) {
     const [estadisticas, setEstadisticas] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const gamesPerPage = 6;
 
     const obtenerEstadisticas = useCallback(async () => {
         try {
@@ -25,6 +27,8 @@ export default function StatsView({ user }) {
 
             const data = await response.json();
             setEstadisticas(data);
+            // Reiniciar a la primera página cuando se cargan nuevas estadísticas
+            setCurrentPage(1);
         } catch (error) {
             console.error("Error al obtener estadísticas:", error);
             setError(error.message);
@@ -212,39 +216,104 @@ export default function StatsView({ user }) {
                             Partidas Recientes
                         </h3>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b">
-                                        <th className="pb-2 text-gray-600">Oponente</th>
-                                        <th className="pb-2 text-gray-600">Color</th>
-                                        <th className="pb-2 text-gray-600">Resultado</th>
-                                        <th className="pb-2 text-gray-600">Fecha</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {estadisticas.partidas_recientes.map((partida, index) => (
-                                        <tr key={index} className="border-b last:border-b-0">
-                                            <td className="py-3 font-medium">{partida.oponente}</td>
-                                            <td className="py-3">
-                                                <span className={`px-2 py-1 rounded text-xs ${partida.color === 'Blancas' ? 'bg-gray-100 text-gray-800' : 'bg-gray-800 text-white'}`}>
-                                                    {partida.color}
-                                                </span>
-                                            </td>
-                                            <td className="py-3">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium ${partida.resultado === 'Victoria' ? 'bg-green-100 text-green-800' :
-                                                    partida.resultado === 'Derrota' ? 'bg-red-100 text-red-800' :
-                                                        'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {partida.resultado}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 text-gray-600">{partida.fecha || 'Sin fecha'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        {(() => {
+                            const totalGames = estadisticas.partidas_recientes.length;
+                            const totalPages = Math.ceil(totalGames / gamesPerPage);
+                            const startIndex = (currentPage - 1) * gamesPerPage;
+                            const endIndex = startIndex + gamesPerPage;
+                            const currentGames = estadisticas.partidas_recientes.slice(startIndex, endIndex);
+
+                            return (
+                                <>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="border-b">
+                                                    <th className="pb-2 text-gray-600">Oponente</th>
+                                                    <th className="pb-2 text-gray-600">Color</th>
+                                                    <th className="pb-2 text-gray-600">Resultado</th>
+                                                    <th className="pb-2 text-gray-600">Fecha</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {currentGames.map((partida, index) => (
+                                                    <tr key={startIndex + index} className="border-b last:border-b-0">
+                                                        <td className="py-3 font-medium">{partida.oponente}</td>
+                                                        <td className="py-3">
+                                                            <span className={`px-2 py-1 rounded text-xs ${partida.color === 'Blancas' ? 'bg-gray-100 text-gray-800' : 'bg-gray-800 text-white'}`}>
+                                                                {partida.color}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3">
+                                                            <span className={`px-2 py-1 rounded text-xs font-medium ${partida.resultado === 'Victoria' ? 'bg-green-100 text-green-800' :
+                                                                partida.resultado === 'Derrota' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-yellow-100 text-yellow-800'
+                                                                }`}>
+                                                                {partida.resultado}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 text-gray-600">{partida.fecha || 'Sin fecha'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Paginación - solo se muestra cuando hay más de 6 partidas */}
+                                    {totalGames > gamesPerPage && (
+                                        <div className="mt-6 flex justify-between items-center">
+                                            <div className="text-sm text-gray-600">
+                                                Mostrando {startIndex + 1}-{Math.min(endIndex, totalGames)} de {totalGames} partidas
+                                            </div>
+
+                                            <div className="flex items-center space-x-2">
+                                                {/* Botón página anterior */}
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={currentPage === 1}
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentPage === 1
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                                        }`}
+                                                >
+                                                    <FaChevronLeft className="w-3 h-3" />
+                                                    <span>Anterior</span>
+                                                </button>
+
+                                                {/* Números de página */}
+                                                <div className="flex space-x-1">
+                                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
+                                                        <button
+                                                            key={pageNumber}
+                                                            onClick={() => setCurrentPage(pageNumber)}
+                                                            className={`px-3 py-2 rounded-lg transition-colors ${currentPage === pageNumber
+                                                                    ? 'bg-indigo-600 text-white'
+                                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                }`}
+                                                        >
+                                                            {pageNumber}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* Botón página siguiente */}
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                    disabled={currentPage === totalPages}
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentPage === totalPages
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                                        }`}
+                                                >
+                                                    <span>Siguiente</span>
+                                                    <FaChevronRight className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
