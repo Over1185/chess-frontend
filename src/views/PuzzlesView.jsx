@@ -129,9 +129,6 @@ export default function PuzzlesView({ user }) {
             console.error("Puzzle incompleto:", puzzle);
             return;
         }
-
-        console.log("Cargando puzzle:", puzzle.id, "con FEN:", puzzle.fen);
-
         try {
             const newGame = new Chess();
             newGame.load(puzzle.fen);
@@ -155,10 +152,6 @@ export default function PuzzlesView({ user }) {
             setMoveFrom(''); // Resetear selección
 
             gameRef.current = newGame;
-
-            console.log("Estados actualizados - GamePosition:", puzzle.fen);
-            console.log("Moves:", movesArray);
-            console.log("Starting index: 0 (usuario hace primer movimiento)");
         } catch (error) {
             console.error("Error al cargar el FEN:", puzzle.fen, error.message);
             return;
@@ -187,13 +180,6 @@ export default function PuzzlesView({ user }) {
 
             const moveString = `${sourceSquare}${targetSquare}`;
             const expectedMove = moves[currentMoveIndex];
-
-            console.log("=== DEBUG MOVES ===");
-            console.log("Movimiento realizado:", moveString);
-            console.log("Movimiento esperado:", expectedMove);
-            console.log("Índice actual:", currentMoveIndex);
-            console.log("Todos los moves:", moves);
-            console.log("==================");
 
             if (moveString === expectedMove || `${sourceSquare}${targetSquare}q` === expectedMove) {
                 gameRef.current = gameCopy;
@@ -236,10 +222,6 @@ export default function PuzzlesView({ user }) {
         const opponentMove = moves[moveIndex];
         if (!opponentMove) return;
 
-        console.log("=== OPPONENT MOVE ===");
-        console.log("Movimiento del oponente:", opponentMove);
-        console.log("Índice:", moveIndex);
-        console.log("====================");
 
         const gameCopy = new Chess();
         gameCopy.load(gameRef.current.fen());
@@ -259,16 +241,13 @@ export default function PuzzlesView({ user }) {
                 gameRef.current = gameCopy;
                 setGamePosition(gameCopy.fen());
                 setCurrentMoveIndex(moveIndex + 1);
-
-                console.log("Movimiento del oponente aplicado:", opponentMove);
-                console.log("Nueva posición:", gameCopy.fen());
             }
         } catch (error) {
             console.error("Error making opponent move:", error);
         }
     };
 
-    const onSquareClick = ({ square, piece }) => {
+    const onSquareClick = ({ square }) => {
         if (puzzleComplete) return;
 
         const gameCopy = new Chess();

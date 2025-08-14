@@ -160,10 +160,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Función para guardar partida contra IA
     const saveGameToDatabase = useCallback(async (result) => {
-        console.log('=== GUARDANDO PARTIDA CONTRA IA ===');
-        console.log('Resultado:', result);
-        console.log('Usuario:', user?.username);
-        console.log('Color del jugador:', playerColor);
 
         try {
             const moves = chessGameRef.current.history();
@@ -191,8 +187,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 vs_ai: true  // Indica que es una partida contra la IA
             };
 
-            console.log('Datos del juego a enviar:', gameData);
-
             const response = await fetch('http://localhost:8000/guardar-partida', {
                 method: 'POST',
                 headers: {
@@ -201,8 +195,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 },
                 body: JSON.stringify(gameData)
             });
-
-            console.log('Respuesta del servidor:', response.status);
 
             if (response.ok) {
                 const responseData = await response.json();
@@ -284,14 +276,8 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Función para hacer que Stockfish juegue
     const makeStockfishMove = useCallback(async () => {
-        console.log('=== STOCKFISH MOVE CALLED ===');
-        console.log('Game status:', gameStatus);
-        console.log('Player color:', playerColor);
-        console.log('Current turn:', currentTurn);
-        console.log('============================');
 
         if (gameStatus !== 'active') {
-            console.log('Game not active, returning...');
             return;
         }
 
@@ -301,14 +287,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             // Obtener el historial de movimientos en formato SAN desde la instancia actual
             const history = chessGameRef.current.history();
 
-            console.log('=== DEBUG STOCKFISH REQUEST ===');
-            console.log('Enviando historial a Stockfish:', history);
-            console.log('FEN actual:', chessGameRef.current.fen());
-            console.log('Número total de movimientos:', history.length);
-            console.log('Dificultad seleccionada:', difficulty);
-            console.log('================================');
-
-            const response = await fetch('http://localhost:8000/api/juga-stockfish', {
+            const response = await fetch('http://localhost:8000/analysis/juga-stockfish', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -331,7 +310,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             }
 
             const data = await response.json();
-            console.log('Respuesta de Stockfish:', data);
 
             if (data.jugada_stockfish) {
                 // Aplicar el movimiento de Stockfish a la instancia actual
@@ -393,10 +371,15 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } finally {
             setIsThinking(false);
         }
-    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty, currentTurn, playerColor, saveGameToDatabase]);
+    }, [gameStatus, calculateCapturedPieces, updateSquareStyles, onGameEnd, difficulty, saveGameToDatabase]);
 
     // Función para hacer un movimiento del jugador
     const makeMove = useCallback((from, to, promotion = 'q') => {
+        // Verificar que from y to no sean la misma casilla
+        if (from === to) {
+            return false;
+        }
+
         // Verificar que es el turno del jugador
         if (!isPlayerTurn) {
             setErrorMessage('No es tu turno');
@@ -481,7 +464,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Manejar click en casilla
     const onSquareClick = useCallback(({ square, piece }) => {
-        console.log('Square clicked:', square, 'Piece:', piece, 'Player turn:', isPlayerTurn);
 
         // No permitir clicks si no es el turno del jugador o si la IA está pensando
         if (!isPlayerTurn || isThinking) {
@@ -545,7 +527,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Manejar drop de pieza (drag and drop)
     const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }) => {
-        console.log('Piece dropped:', sourceSquare, '->', targetSquare, 'Piece:', piece);
 
         // Solo permitir mover si es el turno del jugador y la IA no está pensando
         if (!isPlayerTurn || isThinking) {
@@ -612,12 +593,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         setIsThinking(false);
         setPromotionMove(null);
         setShowPromotionModal(false);
-
-        console.log('=== NEW GAME ===');
-        console.log('Player color:', playerColor);
-        console.log('Game reset completed');
-        console.log('================');
-    }, [playerColor]);
+    }, []);
 
     // Función para copiar FEN
     const copyFEN = () => {
@@ -630,7 +606,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
     useEffect(() => {
         const loadDifficulties = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/stockfish-dificultades');
+                const response = await fetch('http://localhost:8000/analysis/stockfish-dificultades');
                 if (response.ok) {
                     const data = await response.json();
                     setDifficulties(data.dificultades);
@@ -651,8 +627,6 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             currentTurn === 'white' &&
             moveHistory.length === 0 &&
             !isThinking) {
-            console.log('=== AUTO STOCKFISH MOVE ===');
-            console.log('Conditions met for Stockfish first move');
             setTimeout(() => makeStockfishMove(), 500);
         }
     }, [playerColor, gameStatus, currentTurn, moveHistory.length, isThinking, makeStockfishMove]);

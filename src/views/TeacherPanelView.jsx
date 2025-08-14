@@ -132,7 +132,6 @@ export default function TeacherPanelView({ onBack, user }) {
 
             if (response.ok) {
                 const gameData = await response.json();
-                console.log('Datos de partida recibidos:', gameData);
                 setSelectedGame(gameData);
                 setShowReplayModal(true);
             } else {

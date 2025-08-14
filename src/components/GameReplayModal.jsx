@@ -46,9 +46,6 @@ export default function GameReplayModal({
             return;
         }
 
-        console.log('Inicializando juego con datos:', gameData);
-        console.log('Tipo de moves:', typeof gameData.moves, gameData.moves);
-
         const game = new Chess();
         chessGameRef.current = game;
 
@@ -61,8 +58,6 @@ export default function GameReplayModal({
                 moveList = gameData.moves.filter(move => move && move.trim && move.trim() !== '');
             }
         }
-
-        console.log('Lista de movimientos procesada:', moveList);
 
         setMoves(moveList);
         setCurrentMoveIndex(0);
@@ -129,11 +124,6 @@ export default function GameReplayModal({
 
         // Usar _id si id no está disponible
         const gameId = gameData.id || gameData._id;
-        console.log('Analizando posición:', {
-            gameId,
-            currentMoveIndex,
-            gameData
-        });
 
         try {
             const response = await fetch(`http://localhost:8000/analysis/game/${gameId}/move/${currentMoveIndex}`, {
@@ -143,11 +133,8 @@ export default function GameReplayModal({
                 }
             });
 
-            console.log('Respuesta del análisis:', response.status);
-
             if (response.ok) {
                 const analysisData = await response.json();
-                console.log('Datos de análisis recibidos:', analysisData);
                 setAnalysis(prev => ({
                     ...prev,
                     [currentMoveIndex]: analysisData
