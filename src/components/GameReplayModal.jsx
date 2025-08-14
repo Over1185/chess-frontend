@@ -41,13 +41,28 @@ export default function GameReplayModal({
 
     // Función para inicializar el juego
     const initializeGame = useCallback(() => {
-        if (!gameData?.moves) return;
+        if (!gameData?.moves) {
+            console.warn('No hay datos de movimientos disponibles:', gameData);
+            return;
+        }
+
+        console.log('Inicializando juego con datos:', gameData);
+        console.log('Tipo de moves:', typeof gameData.moves, gameData.moves);
 
         const game = new Chess();
         chessGameRef.current = game;
 
-        // Parsear los movimientos desde la notación SAN
-        const moveList = gameData.moves.split(' ').filter(move => move.trim() !== '');
+        // Parsear los movimientos - manejar tanto string como array
+        let moveList = [];
+        if (gameData.moves) {
+            if (typeof gameData.moves === 'string') {
+                moveList = gameData.moves.split(' ').filter(move => move.trim() !== '');
+            } else if (Array.isArray(gameData.moves)) {
+                moveList = gameData.moves.filter(move => move && move.trim && move.trim() !== '');
+            }
+        }
+
+        console.log('Lista de movimientos procesada:', moveList);
 
         setMoves(moveList);
         setCurrentMoveIndex(0);

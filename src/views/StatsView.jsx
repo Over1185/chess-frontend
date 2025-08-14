@@ -28,6 +28,8 @@ export default function StatsView({ user }) {
 
             if (response.ok) {
                 const gameData = await response.json();
+                console.log('Datos de partida recibidos:', gameData);
+                console.log('Tipo de moves en gameData:', typeof gameData.moves, gameData.moves);
                 setSelectedGame(gameData);
                 setShowReplayModal(true);
             } else {
