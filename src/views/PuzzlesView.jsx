@@ -31,9 +31,6 @@ export default function PuzzlesView({ user }) {
         fetchCategories();
     }, []);
 
-    useEffect(() => {
-        console.log("GamePosition cambió a:", gamePosition);
-    }, [gamePosition]);
 
     const fetchCategories = async () => {
         try {
@@ -68,8 +65,7 @@ export default function PuzzlesView({ user }) {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                console.log("Resolución de puzzle registrada:", data);
+                // Puzzle resuelto correctamente
             } else {
                 console.error("Error registrando resolución de puzzle:", response.statusText);
             }

@@ -78,13 +78,13 @@ export default function DynamicLessonView({ user }) {
 
                             const isMatch = matches.some(match => match);
                             if (isMatch) {
-                                console.log("Lección encontrada:", l, "Criterio de búsqueda:", lessonId);
+                                // Lección encontrada
                             }
                             return isMatch;
                         });
 
                         if (lessonData) {
-                            console.log("Lección encontrada en lista completa:", lessonData);
+                            // Lección encontrada en lista completa
                         }
                     }
                 }
@@ -116,17 +116,17 @@ export default function DynamicLessonView({ user }) {
 
                                 const isMatch = matches.some(match => match);
                                 if (isMatch) {
-                                    console.log("Lección encontrada en admin:", l, "Criterio de búsqueda:", lessonId);
+                                    // Lección encontrada en admin
                                 }
                                 return isMatch;
                             });
 
                             if (lessonData) {
-                                console.log("Lección encontrada en admin:", lessonData);
+                                // Lección encontrada en admin
                             }
                         }
-                    } catch (adminError) {
-                        console.log("Error buscando en admin lecciones:", adminError);
+                    } catch {
+                        // Error buscando en admin lecciones
                     }
                 }
 
@@ -162,8 +162,8 @@ export default function DynamicLessonView({ user }) {
                                     });
                                 }
                             }
-                        } catch (progressError) {
-                            console.log("Error cargando progreso:", progressError);
+                        } catch {
+                            // Error cargando progreso
                         }
                     }
                 } else {
@@ -227,9 +227,9 @@ export default function DynamicLessonView({ user }) {
 
                     if (userAnswerStr === correctAnswerStr) {
                         isCorrect = true;
-                        console.log("  ✓ Coincidencia como string");
+                        // Coincidencia como string
                     } else {
-                        console.log("  ✗ No hay coincidencia como string");
+                        // No hay coincidencia como string
                     }
                 }
             }
@@ -278,8 +278,6 @@ export default function DynamicLessonView({ user }) {
             });
 
             if (response.ok) {
-                const result = await response.json();
-                console.log("Lección completada exitosamente:", result);
 
                 // Recargar la página para refrescar el progreso
                 window.location.reload();

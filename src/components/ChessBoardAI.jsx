@@ -197,8 +197,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             });
 
             if (response.ok) {
-                const responseData = await response.json();
-                console.log('Partida guardada exitosamente:', responseData);
+                // Partida guardada correctamente
             } else {
                 const errorText = await response.text();
                 console.error('Error al guardar partida:', response.statusText, errorText);
