@@ -6,7 +6,9 @@ export default function StatsView({ user }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [currentAchievementPage, setCurrentAchievementPage] = useState(1);
     const gamesPerPage = 6;
+    const achievementsPerPage = 4;
 
     const obtenerEstadisticas = useCallback(async () => {
         try {
@@ -29,6 +31,7 @@ export default function StatsView({ user }) {
             setEstadisticas(data);
             // Reiniciar a la primera página cuando se cargan nuevas estadísticas
             setCurrentPage(1);
+            setCurrentAchievementPage(1);
         } catch (error) {
             console.error("Error al obtener estadísticas:", error);
             setError(error.message);
@@ -178,33 +181,101 @@ export default function StatsView({ user }) {
                             Logros ({achievements.filter(a => a.earned).length}/{achievements.length})
                         </h3>
 
-                        <div className="space-y-3">
-                            {achievements.map((achievement) => (
-                                <div
-                                    key={achievement.name}
-                                    className={`p-4 rounded-lg border-2 transition-all ${achievement.earned
-                                        ? 'border-green-200 bg-green-50 shadow-sm'
-                                        : 'border-gray-200 bg-gray-50'
-                                        }`}
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <FaTrophy className={`text-xl ${achievement.earned ? 'text-yellow-500' : 'text-gray-400'
-                                            }`} />
-                                        <div>
-                                            <h4 className={`font-semibold ${achievement.earned ? 'text-green-800' : 'text-gray-600'
-                                                }`}>
-                                                {achievement.name}
-                                                {achievement.earned && <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">✓ Conseguido</span>}
-                                            </h4>
-                                            <p className={`text-sm ${achievement.earned ? 'text-green-600' : 'text-gray-500'
-                                                }`}>
-                                                {achievement.description}
-                                            </p>
-                                        </div>
+                        {(() => {
+                            const totalAchievements = achievements.length;
+                            const totalAchievementPages = Math.ceil(totalAchievements / achievementsPerPage);
+                            const startIndex = (currentAchievementPage - 1) * achievementsPerPage;
+                            const endIndex = startIndex + achievementsPerPage;
+                            const currentAchievements = achievements.slice(startIndex, endIndex);
+
+                            return (
+                                <>
+                                    <div className="space-y-3">
+                                        {currentAchievements.map((achievement) => (
+                                            <div
+                                                key={achievement.name}
+                                                className={`p-4 rounded-lg border-2 transition-all ${achievement.earned
+                                                    ? 'border-green-200 bg-green-50 shadow-sm'
+                                                    : 'border-gray-200 bg-gray-50'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center space-x-3">
+                                                    <FaTrophy className={`text-xl ${achievement.earned ? 'text-yellow-500' : 'text-gray-400'
+                                                        }`} />
+                                                    <div>
+                                                        <h4 className={`font-semibold ${achievement.earned ? 'text-green-800' : 'text-gray-600'
+                                                            }`}>
+                                                            {achievement.name}
+                                                            {achievement.earned && <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">✓ Conseguido</span>}
+                                                        </h4>
+                                                        <p className={`text-sm ${achievement.earned ? 'text-green-600' : 'text-gray-500'
+                                                            }`}>
+                                                            {achievement.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+
+                                    {/* Paginación de logros - solo se muestra cuando hay más de 4 logros */}
+                                    {totalAchievements > achievementsPerPage && (
+                                        <div className="mt-6 flex justify-between items-center">
+                                            <div className="text-sm text-gray-600">
+                                                Mostrando {startIndex + 1}-{Math.min(endIndex, totalAchievements)} de {totalAchievements} logros
+                                            </div>
+                                            
+                                            <div className="flex items-center space-x-2">
+                                                {/* Botón página anterior */}
+                                                <button
+                                                    onClick={() => setCurrentAchievementPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={currentAchievementPage === 1}
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${
+                                                        currentAchievementPage === 1 
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                            : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                                                    }`}
+                                                >
+                                                    <FaChevronLeft className="w-3 h-3" />
+                                                    <span>Anterior</span>
+                                                </button>
+
+                                                {/* Números de página */}
+                                                <div className="flex space-x-1">
+                                                    {Array.from({ length: totalAchievementPages }, (_, i) => i + 1).map(pageNumber => (
+                                                        <button
+                                                            key={pageNumber}
+                                                            onClick={() => setCurrentAchievementPage(pageNumber)}
+                                                            className={`px-3 py-2 rounded-lg transition-colors ${
+                                                                currentAchievementPage === pageNumber
+                                                                    ? 'bg-yellow-600 text-white'
+                                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                            }`}
+                                                        >
+                                                            {pageNumber}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* Botón página siguiente */}
+                                                <button
+                                                    onClick={() => setCurrentAchievementPage(prev => Math.min(prev + 1, totalAchievementPages))}
+                                                    disabled={currentAchievementPage === totalAchievementPages}
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${
+                                                        currentAchievementPage === totalAchievementPages 
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                            : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                                                    }`}
+                                                >
+                                                    <span>Siguiente</span>
+                                                    <FaChevronRight className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -333,12 +404,6 @@ export default function StatsView({ user }) {
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Total Intentados</span>
                                 <span className="font-semibold text-gray-600">{stats.puzzles_totales}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Tasa de Éxito</span>
-                                <span className="font-semibold text-purple-600">
-                                    {stats.puzzles_totales > 0 ? Math.round((stats.puzzles_resueltos / stats.puzzles_totales) * 100) : 0}%
-                                </span>
                             </div>
                         </div>
 
