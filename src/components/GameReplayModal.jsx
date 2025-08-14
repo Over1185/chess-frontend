@@ -116,6 +116,54 @@ export default function GameReplayModal({
         }
     }, [moves]);
 
+    // Función para analizar posición con Stockfish
+    const analyzePosition = useCallback(async () => {
+        if (!gameData?.id && !gameData?._id) {
+            console.error('No hay ID de partida disponible:', gameData);
+            return;
+        }
+
+        if (isAnalyzing) return;
+
+        setIsAnalyzing(true);
+
+        // Usar _id si id no está disponible
+        const gameId = gameData.id || gameData._id;
+        console.log('Analizando posición:', {
+            gameId,
+            currentMoveIndex,
+            gameData
+        });
+
+        try {
+            const response = await fetch(`http://localhost:8000/analysis/game/${gameId}/move/${currentMoveIndex}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            console.log('Respuesta del análisis:', response.status);
+
+            if (response.ok) {
+                const analysisData = await response.json();
+                console.log('Datos de análisis recibidos:', analysisData);
+                setAnalysis(prev => ({
+                    ...prev,
+                    [currentMoveIndex]: analysisData
+                }));
+                setCurrentAnalysis(analysisData);
+            } else {
+                const errorText = await response.text();
+                console.error('Error obteniendo análisis:', response.statusText, errorText);
+            }
+        } catch (error) {
+            console.error('Error analizando posición:', error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }, [gameData, currentMoveIndex, isAnalyzing]);
+
     // Función para ir a un movimiento específico
     const goToMove = useCallback((moveIndex) => {
         if (!moves.length) return;
@@ -144,8 +192,12 @@ export default function GameReplayModal({
             setCurrentAnalysis(analysis[moveIndex]);
         } else {
             setCurrentAnalysis(null);
+            // Auto-analizar la posición si no está disponible
+            if (moveIndex > 0) {
+                setTimeout(() => analyzePosition(), 500);
+            }
         }
-    }, [moves, analysis, updateSquareStyles]);
+    }, [moves, analysis, updateSquareStyles, analyzePosition]);
 
     // Funciones de navegación
     const goToStart = () => goToMove(0);
@@ -178,36 +230,35 @@ export default function GameReplayModal({
         }
     }, [isPlaying, playInterval, moves.length, goToMove]);
 
-    // Función para analizar posición con Stockfish
-    const analyzePosition = useCallback(async () => {
-        if (!gameData?.id || isAnalyzing) return;
+    // Función para evaluar la calidad de una jugada
+    const evaluateMove = (evaluation, previousEvaluation) => {
+        if (!evaluation || !previousEvaluation) return { quality: 'unknown', emoji: '❓', color: 'gray' };
 
-        setIsAnalyzing(true);
+        // Convertir evaluaciones a valores numéricos
+        const getEvalValue = (evalData) => {
+            if (evalData.type === 'cp') return evalData.value / 100; // Centipawns a peones
+            if (evalData.type === 'mate') return evalData.value > 0 ? 999 : -999;
+            return 0;
+        };
 
-        try {
-            const response = await fetch(`http://localhost:8000/analysis/game/${gameData.id}/move/${currentMoveIndex}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
+        const currentEval = getEvalValue(evaluation);
+        const prevEval = getEvalValue(previousEvaluation);
 
-            if (response.ok) {
-                const analysisData = await response.json();
-                setAnalysis(prev => ({
-                    ...prev,
-                    [currentMoveIndex]: analysisData
-                }));
-                setCurrentAnalysis(analysisData);
-            } else {
-                console.error('Error obteniendo análisis:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Error analizando posición:', error);
-        } finally {
-            setIsAnalyzing(false);
+        // Calcular diferencia (desde la perspectiva del jugador que movió)
+        const difference = Math.abs(currentEval - prevEval);
+
+        if (difference <= 0.3) {
+            return { quality: 'excellent', emoji: '✅', color: 'green', text: 'Excelente' };
+        } else if (difference <= 0.7) {
+            return { quality: 'good', emoji: '👍', color: 'blue', text: 'Buena' };
+        } else if (difference <= 1.5) {
+            return { quality: 'inaccurate', emoji: '⚠️', color: 'yellow', text: 'Imprecisa' };
+        } else if (difference <= 3.0) {
+            return { quality: 'mistake', emoji: '❌', color: 'orange', text: 'Error' };
+        } else {
+            return { quality: 'blunder', emoji: '💥', color: 'red', text: 'Grave Error' };
         }
-    }, [gameData?.id, currentMoveIndex, isAnalyzing]);
+    };
 
     // Función para formatear evaluación
     const formatEvaluation = (evaluation) => {
@@ -267,7 +318,33 @@ export default function GameReplayModal({
                     </div>
 
                     {currentAnalysis ? (
-                        <div className="bg-gray-50 rounded p-3 space-y-2">
+                        <div className="bg-gray-50 rounded p-3 space-y-3">
+                            {/* Evaluación de calidad de la jugada */}
+                            {currentMoveIndex > 0 && analysis[currentMoveIndex - 1] && (
+                                <div className="flex items-center justify-between bg-white rounded p-2">
+                                    <span className="text-sm text-gray-600">Calidad de la jugada:</span>
+                                    <div className="flex items-center space-x-2">
+                                        {(() => {
+                                            const moveQuality = evaluateMove(
+                                                currentAnalysis.evaluation,
+                                                analysis[currentMoveIndex - 1]?.evaluation
+                                            );
+                                            return (
+                                                <>
+                                                    <span className="text-lg">{moveQuality.emoji}</span>
+                                                    <span
+                                                        className={`font-medium text-${moveQuality.color}-600`}
+                                                        style={{ color: moveQuality.color === 'orange' ? '#ea5a00' : undefined }}
+                                                    >
+                                                        {moveQuality.text}
+                                                    </span>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex justify-between">
                                 <span className="text-sm text-gray-600">Evaluación:</span>
                                 <span className="font-medium">
@@ -458,23 +535,39 @@ export default function GameReplayModal({
 
                                                     <button
                                                         onClick={() => goToMove(whiteIndex)}
-                                                        className={`px-2 py-1 rounded text-sm flex-1 text-left ${currentMoveIndex === whiteIndex
+                                                        className={`px-2 py-1 rounded text-sm flex-1 text-left flex items-center justify-between ${currentMoveIndex === whiteIndex
                                                             ? 'bg-blue-500 text-white'
                                                             : 'hover:bg-gray-200'
                                                             }`}
                                                     >
-                                                        {whiteMove}
+                                                        <span>{whiteMove}</span>
+                                                        {analysis[whiteIndex] && analysis[whiteIndex - 1] && (
+                                                            <span className="text-xs">
+                                                                {evaluateMove(
+                                                                    analysis[whiteIndex].evaluation,
+                                                                    analysis[whiteIndex - 1]?.evaluation
+                                                                ).emoji}
+                                                            </span>
+                                                        )}
                                                     </button>
 
                                                     {blackMove && (
                                                         <button
                                                             onClick={() => goToMove(blackIndex)}
-                                                            className={`px-2 py-1 rounded text-sm flex-1 text-left ${currentMoveIndex === blackIndex
+                                                            className={`px-2 py-1 rounded text-sm flex-1 text-left flex items-center justify-between ${currentMoveIndex === blackIndex
                                                                 ? 'bg-blue-500 text-white'
                                                                 : 'hover:bg-gray-200'
                                                                 }`}
                                                         >
-                                                            {blackMove}
+                                                            <span>{blackMove}</span>
+                                                            {analysis[blackIndex] && analysis[blackIndex - 1] && (
+                                                                <span className="text-xs">
+                                                                    {evaluateMove(
+                                                                        analysis[blackIndex].evaluation,
+                                                                        analysis[blackIndex - 1]?.evaluation
+                                                                    ).emoji}
+                                                                </span>
+                                                            )}
                                                         </button>
                                                     )}
                                                 </div>
