@@ -160,6 +160,11 @@ export default function ChessBoardAI({ user, onGameEnd }) {
 
     // Función para guardar partida contra IA
     const saveGameToDatabase = useCallback(async (result) => {
+        console.log('=== GUARDANDO PARTIDA CONTRA IA ===');
+        console.log('Resultado:', result);
+        console.log('Usuario:', user?.username);
+        console.log('Color del jugador:', playerColor);
+
         try {
             const moves = chessGameRef.current.history();
             let resultCode, winner;
@@ -178,11 +183,15 @@ export default function ChessBoardAI({ user, onGameEnd }) {
             const gameData = {
                 white_player: playerColor === 'white' ? user.username : 'Stockfish',
                 black_player: playerColor === 'black' ? user.username : 'Stockfish',
+                white_elo: playerColor === 'white' ? (user.elo || 1200) : 1200,
+                black_elo: playerColor === 'black' ? (user.elo || 1200) : 1200,
                 moves: moves,
                 result_code: resultCode,
                 winner: winner,
                 vs_ai: true  // Indica que es una partida contra la IA
             };
+
+            console.log('Datos del juego a enviar:', gameData);
 
             const response = await fetch('http://localhost:8000/guardar-partida', {
                 method: 'POST',
@@ -193,15 +202,19 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 body: JSON.stringify(gameData)
             });
 
+            console.log('Respuesta del servidor:', response.status);
+
             if (response.ok) {
-                console.log('Partida guardada exitosamente');
+                const responseData = await response.json();
+                console.log('Partida guardada exitosamente:', responseData);
             } else {
-                console.error('Error al guardar partida:', response.statusText);
+                const errorText = await response.text();
+                console.error('Error al guardar partida:', response.statusText, errorText);
             }
         } catch (error) {
             console.error('Error guardando partida:', error);
         }
-    }, [user.username, playerColor]);
+    }, [user?.username, user?.elo, playerColor]);
 
     // Función para detectar y manejar promoción
     const detectPromotion = useCallback((from, to) => {
