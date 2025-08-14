@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-    FaUsers,
     FaGamepad,
     FaChalkboardTeacher,
     FaChartBar,
@@ -16,7 +15,6 @@ import {
     FaTrophy,
     FaCalendarDay,
     FaBook,
-    FaPuzzlePiece,
     FaCog,
     FaArrowLeft,
     FaPlus,
@@ -149,6 +147,18 @@ export default function TeacherPanelView({ onBack, user }) {
             if (response.ok) {
                 const details = await response.json();
 
+                // Función para formatear tiempo desde última conexión
+                const formatTimeSince = (isoString) => {
+                    const date = new Date(isoString);
+                    const now = new Date();
+                    const diffInSeconds = Math.floor((now - date) / 1000);
+
+                    if (diffInSeconds < 60) return `hace ${diffInSeconds} segundos`;
+                    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
+                    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
+                    return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+                };
+
                 // Usar los datos del endpoint con los datos del estudiante básico
                 setStudentDetails({
                     _id: student._id,
@@ -161,8 +171,10 @@ export default function TeacherPanelView({ onBack, user }) {
                     partidas_empatadas: details.partidas_empatadas || 0,
                     puzzles_resueltos: details.puzzles_resueltos || 0,
                     lecciones_completadas: details.lecciones_completadas || 0,
-                    fecha_registro: details.fecha_registro || "No disponible",
-                    ultima_conexion: details.ultima_conexion || "No disponible"
+                    fecha_registro: details.fecha_registro || null,
+                    ultima_conexion: details.ultima_conexion || null,
+                    estado_actividad: details.estado_actividad || "desconocido",
+                    tiempo_desde_ultima_conexion_texto: details.ultima_conexion ? formatTimeSince(details.ultima_conexion) : "No disponible"
                 });
             } else {
                 console.error("Error al obtener detalles:", response.status);
@@ -969,9 +981,13 @@ export default function TeacherPanelView({ onBack, user }) {
                                             <div>
                                                 <p className="text-sm text-gray-600">Fecha de Registro</p>
                                                 <p className="font-medium text-gray-800">
-                                                    {studentDetails.fecha_registro ?
-                                                        new Date(studentDetails.fecha_registro).toLocaleDateString()
-                                                        : "No disponible"}
+                                                    {studentDetails.fecha_registro ? (
+                                                        new Date(studentDetails.fecha_registro).toLocaleDateString('es-ES', {
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric'
+                                                        })
+                                                    ) : "No disponible"}
                                                 </p>
                                             </div>
                                         </div>
@@ -1045,13 +1061,55 @@ export default function TeacherPanelView({ onBack, user }) {
                                         <h4 className="text-lg font-semibold text-orange-800 mb-4">
                                             Actividad Reciente
                                         </h4>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Última Conexión</p>
-                                            <p className="font-medium text-gray-800">
-                                                {studentDetails.ultima_conexion !== "No disponible" ?
-                                                    new Date(studentDetails.ultima_conexion).toLocaleString()
-                                                    : "No disponible"}
-                                            </p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Estado:</span>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className={`w-3 h-3 rounded-full ${studentDetails.estado_actividad === 'en línea'
+                                                            ? 'bg-green-500 animate-pulse'
+                                                            : studentDetails.estado_actividad === 'activo'
+                                                                ? 'bg-green-500'
+                                                                : studentDetails.estado_actividad === 'inactivo'
+                                                                    ? 'bg-yellow-500'
+                                                                    : 'bg-red-500'
+                                                        }`}></div>
+                                                    <span className={`font-medium capitalize ${studentDetails.estado_actividad === 'en línea'
+                                                            ? 'text-green-600'
+                                                            : studentDetails.estado_actividad === 'activo'
+                                                                ? 'text-green-600'
+                                                                : studentDetails.estado_actividad === 'inactivo'
+                                                                    ? 'text-yellow-600'
+                                                                    : 'text-red-600'
+                                                        }`}>
+                                                        {studentDetails.estado_actividad === 'en línea' ? 'En línea' :
+                                                            studentDetails.estado_actividad === 'activo' ? 'Activo' :
+                                                                studentDetails.estado_actividad === 'inactivo' ? 'Inactivo' :
+                                                                    studentDetails.estado_actividad === 'ausente' ? 'Ausente' : 'Desconocido'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm text-gray-600">Última Conexión</p>
+                                                <p className="font-medium text-gray-800">
+                                                    {studentDetails.ultima_conexion ? (
+                                                        <>
+                                                            <span className="block">
+                                                                {new Date(studentDetails.ultima_conexion).toLocaleString('es-ES', {
+                                                                    year: 'numeric',
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                            <span className="text-sm text-gray-500">
+                                                                ({studentDetails.tiempo_desde_ultima_conexion_texto})
+                                                            </span>
+                                                        </>
+                                                    ) : "No disponible"}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
