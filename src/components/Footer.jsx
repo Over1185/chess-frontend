@@ -24,7 +24,7 @@ export default function Footer({ user }) {
             <div className="flex items-center justify-center md:justify-end space-x-1 text-sm opacity-75">
               <span>Hecho con</span>
               <FaHeart className="text-red-400 text-xs" />
-              <span>por JAAR @ PUCESI 2025</span>
+              <span>por el grupo maravilla @ PUCESE 2025</span>
             </div>
             <div className="text-xs opacity-60 mt-1">
               Versión 1.0.0 - © Todos los derechos reservados

@@ -137,6 +137,14 @@ export default function HomeView({ user }) {
                                         <p className="text-2xl font-bold text-blue-600">
                                             {estadisticas?.usuario?.elo || user?.rating || 1200}
                                         </p>
+                                        <p className="text-xs font-medium text-indigo-600 mt-1">
+                                            {(() => {
+                                                const elo = estadisticas?.usuario?.elo || user?.rating || 1200;
+                                                return elo < 1000 ? 'Principiante' :
+                                                    elo < 1400 ? 'Intermedio' :
+                                                        elo < 1800 ? 'Avanzado' : 'Experto';
+                                            })()}
+                                        </p>
                                     </div>
                                     <div className="text-center p-4 bg-green-50 rounded-lg">
                                         <FaUsers className="text-3xl text-green-500 mx-auto mb-2" />
