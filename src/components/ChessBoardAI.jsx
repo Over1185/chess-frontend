@@ -184,7 +184,8 @@ export default function ChessBoardAI({ user, onGameEnd }) {
                 moves: moves,
                 result_code: resultCode,
                 winner: winner,
-                vs_ai: true  // Indica que es una partida contra la IA
+                vs_ai: true,  // Indica que es una partida contra la IA
+                ai_difficulty: difficulty  // Dificultad de Stockfish para los logros
             };
 
             const response = await fetch('http://localhost:8000/guardar-partida', {
@@ -205,7 +206,7 @@ export default function ChessBoardAI({ user, onGameEnd }) {
         } catch (error) {
             console.error('Error guardando partida:', error);
         }
-    }, [user?.username, user?.elo, playerColor]);
+    }, [user?.username, user?.elo, playerColor, difficulty]);
 
     // Función para detectar y manejar promoción
     const detectPromotion = useCallback((from, to) => {
