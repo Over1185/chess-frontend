@@ -24,6 +24,7 @@ import {
     FaQuestionCircle
 } from "react-icons/fa";
 import { authFetch } from "../utils/auth";
+import GameReplayModal from "../components/GameReplayModal";
 
 export default function TeacherPanelView({ onBack, user }) {
     const [activeTab, setActiveTab] = useState("overview");
@@ -59,6 +60,10 @@ export default function TeacherPanelView({ onBack, user }) {
 
     // Estado para modal de ayuda de Markdown
     const [showMarkdownHelp, setShowMarkdownHelp] = useState(false);
+
+    // Estados para el modal de replay de partidas
+    const [showReplayModal, setShowReplayModal] = useState(false);
+    const [selectedGame, setSelectedGame] = useState(null);
 
     // Función para cargar estudiantes
     const loadStudents = async () => {
@@ -112,6 +117,38 @@ export default function TeacherPanelView({ onBack, user }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Función para manejar la visualización de una partida
+    const handleViewGame = async (game) => {
+        try {
+            // Obtener los datos completos de la partida del backend
+            const response = await fetch(`http://localhost:8000/games/${game._id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const gameData = await response.json();
+                console.log('Datos de partida recibidos:', gameData);
+                setSelectedGame(gameData);
+                setShowReplayModal(true);
+            } else {
+                console.error('Error obteniendo datos de la partida:', response.statusText);
+                alert('Error al cargar los datos de la partida');
+            }
+        } catch (error) {
+            console.error('Error cargando partida:', error);
+            alert('Error al cargar la partida');
+        }
+    };
+
+    // Función para cerrar el modal de replay
+    const handleCloseReplayModal = () => {
+        setShowReplayModal(false);
+        setSelectedGame(null);
     };
 
     // Función para eliminar estudiante
@@ -738,13 +775,28 @@ export default function TeacherPanelView({ onBack, user }) {
                                                             </span>
                                                         </td>
                                                         <td className="py-3 px-4 text-sm text-gray-600">
-                                                            {game.timestamp ? new Date(game.timestamp).toLocaleDateString() : "N/A"}
+                                                            {(() => {
+                                                                if (game.timestamp) {
+                                                                    return new Date(game.timestamp).toLocaleDateString('es-ES');
+                                                                }
+                                                                // Si no hay timestamp, usar fecha basada en ObjectId
+                                                                if (game._id) {
+                                                                    try {
+                                                                        // Los primeros 8 caracteres del ObjectId representan el timestamp Unix
+                                                                        const timestamp = parseInt(game._id.substring(0, 8), 16) * 1000;
+                                                                        return new Date(timestamp).toLocaleDateString('es-ES');
+                                                                    } catch {
+                                                                        return "N/A";
+                                                                    }
+                                                                }
+                                                                return "N/A";
+                                                            })()}
                                                         </td>
                                                         <td className="py-3 px-4">
                                                             <button
-                                                                onClick={() => alert("Ver partida en desarrollo")}
+                                                                onClick={() => handleViewGame(game)}
                                                                 className="text-blue-500 hover:text-blue-700 p-1"
-                                                                title="Ver partida"
+                                                                title="Ver replay de la partida"
                                                             >
                                                                 <FaEye />
                                                             </button>
@@ -1473,6 +1525,14 @@ La dama es la pieza más **poderosa** del tablero.
                     </div>
                 </div>
             )}
+
+            {/* Modal de replay de partida */}
+            <GameReplayModal
+                isOpen={showReplayModal}
+                onClose={handleCloseReplayModal}
+                gameData={selectedGame}
+                playerUsername={user?.username}
+            />
         </div>
     );
 }
