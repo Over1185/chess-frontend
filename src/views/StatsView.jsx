@@ -224,17 +224,16 @@ export default function StatsView({ user }) {
                                             <div className="text-sm text-gray-600">
                                                 Mostrando {startIndex + 1}-{Math.min(endIndex, totalAchievements)} de {totalAchievements} logros
                                             </div>
-                                            
+
                                             <div className="flex items-center space-x-2">
                                                 {/* Botón página anterior */}
                                                 <button
                                                     onClick={() => setCurrentAchievementPage(prev => Math.max(prev - 1, 1))}
                                                     disabled={currentAchievementPage === 1}
-                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${
-                                                        currentAchievementPage === 1 
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentAchievementPage === 1
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                             : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <FaChevronLeft className="w-3 h-3" />
                                                     <span>Anterior</span>
@@ -246,11 +245,10 @@ export default function StatsView({ user }) {
                                                         <button
                                                             key={pageNumber}
                                                             onClick={() => setCurrentAchievementPage(pageNumber)}
-                                                            className={`px-3 py-2 rounded-lg transition-colors ${
-                                                                currentAchievementPage === pageNumber
+                                                            className={`px-3 py-2 rounded-lg transition-colors ${currentAchievementPage === pageNumber
                                                                     ? 'bg-yellow-600 text-white'
                                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {pageNumber}
                                                         </button>
@@ -261,11 +259,10 @@ export default function StatsView({ user }) {
                                                 <button
                                                     onClick={() => setCurrentAchievementPage(prev => Math.min(prev + 1, totalAchievementPages))}
                                                     disabled={currentAchievementPage === totalAchievementPages}
-                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${
-                                                        currentAchievementPage === totalAchievementPages 
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                    className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentAchievementPage === totalAchievementPages
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                             : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span>Siguiente</span>
                                                     <FaChevronRight className="w-3 h-3" />
@@ -343,8 +340,8 @@ export default function StatsView({ user }) {
                                                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                                     disabled={currentPage === 1}
                                                     className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentPage === 1
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-indigo-500 text-white hover:bg-indigo-600'
                                                         }`}
                                                 >
                                                     <FaChevronLeft className="w-3 h-3" />
@@ -358,8 +355,8 @@ export default function StatsView({ user }) {
                                                             key={pageNumber}
                                                             onClick={() => setCurrentPage(pageNumber)}
                                                             className={`px-3 py-2 rounded-lg transition-colors ${currentPage === pageNumber
-                                                                    ? 'bg-indigo-600 text-white'
-                                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                ? 'bg-indigo-600 text-white'
+                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                                 }`}
                                                         >
                                                             {pageNumber}
@@ -372,8 +369,8 @@ export default function StatsView({ user }) {
                                                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                                     disabled={currentPage === totalPages}
                                                     className={`px-3 py-2 rounded-lg flex items-center space-x-1 transition-colors ${currentPage === totalPages
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-indigo-500 text-white hover:bg-indigo-600'
                                                         }`}
                                                 >
                                                     <span>Siguiente</span>
